@@ -4,32 +4,34 @@ import {computed} from 'mobx';
 import {getCommonStartOfTwoArray} from './@utils';
 import type {__Router} from './router';
 import type {StateType, __Schema} from './schema';
-import type {ViewBuilder} from './view';
+import type {_ViewBuilder} from './view';
 
-export function __createRoute(
+export type __Route = _Route<__Schema, object, string[]>;
+
+export function _createRoute(
   router: __Router,
   schema: __Schema,
   path: string[],
   statePartMap: Map<string, object>,
-): __Route<__Schema, object, string[]> {
+): _Route<__Schema, object, string[]> {
   let route: any = (state: object) => {
     let alteredStatePartMap = new Map([
       ...statePartMap,
       [_.last(path)!, state],
     ]);
 
-    return __createRoute(router, schema, path, alteredStatePartMap);
+    return _createRoute(router, schema, path, alteredStatePartMap);
   };
 
   Object.setPrototypeOf(
     route,
-    new __RouteObject(router, schema, path, statePartMap),
+    new _RouteObject(router, schema, path, statePartMap),
   );
 
   return route;
 }
 
-export class __RouteObject<TView, TPath extends string[]> {
+export class _RouteObject<TView, TPath extends string[]> {
   readonly $key = _.last(this.$path)!;
 
   constructor(
@@ -42,7 +44,7 @@ export class __RouteObject<TView, TPath extends string[]> {
     readonly $router: __Router,
     schema: __Schema,
     readonly $path: TPath,
-    private _stateParts: Map<string, object>,
+    private __stateParts: Map<string, object>,
   ) {
     let pathKeySet = new Set($path);
 
@@ -59,11 +61,11 @@ export class __RouteObject<TView, TPath extends string[]> {
         childSchema = {};
       }
 
-      (this as any)[key] = __createRoute(
+      (this as any)[key] = _createRoute(
         $router,
         childSchema as __Schema,
         [...$path, key],
-        _stateParts,
+        __stateParts,
       );
     }
   }
@@ -71,7 +73,7 @@ export class __RouteObject<TView, TPath extends string[]> {
   @computed
   get $view(): TView | undefined {
     let {path: activePath, viewComputedValueMap: viewMap} =
-      this.$router._activeEntry;
+      this.$router.__activeEntry;
 
     let path = this.$path;
 
@@ -81,15 +83,15 @@ export class __RouteObject<TView, TPath extends string[]> {
   }
 
   $reset(): void {
-    this.$router._reset(this.$path, this._stateParts);
+    this.$router._reset(this.$path, this.__stateParts);
   }
 
   $push(): void {
-    this.$router._push(this.$path, this._stateParts);
+    this.$router._push(this.$path, this.__stateParts);
   }
 
   $replace(): void {
-    this.$router._replace(this.$path, this._stateParts);
+    this.$router._replace(this.$path, this.__stateParts);
   }
 
   $pop(): void {
@@ -97,26 +99,26 @@ export class __RouteObject<TView, TPath extends string[]> {
   }
 }
 
-export interface __Route<TSchema, TView, TPath extends string[]>
-  extends __RouteObject<TView, TPath> {
+export interface _Route<TSchema, TView, TPath extends string[]>
+  extends _RouteObject<TView, TPath> {
   (state: Partial<StateType<TSchema>>): this;
 }
 
-export type __RouteType<
+export type _RouteType<
   TSchema,
   TViewDefinitionRecord,
   TUpperMergedState,
   TPath extends string[],
 > = Exclude<
   Exclude<keyof TViewDefinitionRecord, '$view'>,
-  Exclude<keyof TSchema, `$${string}`>
+  Exclude<keyof TSchema, `_{string}`>
 > extends infer TExtraViewKey extends string
   ? [TExtraViewKey] extends [never]
     ? TUpperMergedState & StateType<TSchema> extends infer TMergedState
-      ? __Route<
+      ? _Route<
           TSchema,
           TViewDefinitionRecord extends {
-            $view: ViewBuilder<unknown, infer TView>;
+            $view: _ViewBuilder<unknown, infer TView>;
           }
             ? TMergedState & TView
             : TMergedState,
@@ -124,8 +126,8 @@ export type __RouteType<
         > & {
           [TKey in Exclude<
             Extract<keyof TSchema, string>,
-            `$${string}`
-          >]: __RouteType<
+            `_{string}`
+          >]: _RouteType<
             TSchema[TKey] extends infer TChildSchema extends object
               ? TChildSchema
               : {},

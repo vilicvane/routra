@@ -51,3 +51,11 @@ export interface SchemaStatePart<TState extends object> {
 export type StateType<TSchema> = TSchema extends SchemaStatePart<infer TState>
   ? TState
   : object;
+
+export function schemas<T extends SchemaRecord>(schemas: T): T {
+  return schemas;
+}
+
+export function schema<T extends Schema>(schema: T): T {
+  return schema;
+}

@@ -3,21 +3,19 @@ import type {IComputedValue} from 'mobx';
 import {computed, makeObservable, observable, runInAction} from 'mobx';
 
 import {createMergedObjectProxy, getCommonStartOfTwoArray} from './@utils';
-import type {__RouteType} from './route';
-import {__createRoute} from './route';
+import type {_RouteType} from './route';
+import {_createRoute} from './route';
 import type {SchemaRecord, __SchemaRecord} from './schema';
-import type {__RootViewDefinitionRecord, __ViewDefinitionRecord} from './view';
+import type {_RootViewDefinitionRecord, __ViewDefinitionRecord} from './view';
 
-export type __Router = __RouterClass<__SchemaRecord, object>;
-
-export class __RouterClass<TSchemaRecord, TViewDefinitionRecord> {
+export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
   @observable
-  $stack: StackEntry[] = [];
+  $stack: RouterStackEntry[] = [];
 
-  constructor(schemas: TSchemaRecord, views: TViewDefinitionRecord);
+  constructor(schemas: TSchemaRecord, views?: TViewDefinitionRecord);
   constructor(
     private _schemas: __SchemaRecord,
-    private _views: __ViewDefinitionRecord,
+    private _views: __ViewDefinitionRecord = {},
   ) {
     makeObservable(this);
 
@@ -26,7 +24,7 @@ export class __RouterClass<TSchemaRecord, TViewDefinitionRecord> {
         schema = {};
       }
 
-      (this as any)[key] = __createRoute(this as any, schema, [key], new Map());
+      (this as any)[key] = _createRoute(this as any, schema, [key], new Map());
     }
   }
 
@@ -49,7 +47,7 @@ export class __RouterClass<TSchemaRecord, TViewDefinitionRecord> {
   }
 
   @computed
-  get _activeEntry(): StackEntry {
+  get __activeEntry(): RouterStackEntry {
     this._assertNonEmptyStack();
 
     return _.last(this.$stack)!;
@@ -107,7 +105,7 @@ export class __RouterClass<TSchemaRecord, TViewDefinitionRecord> {
   private _buildEntry(
     path: string[],
     observableStateMap: Map<string, object>,
-  ): StackEntry {
+  ): RouterStackEntry {
     let viewComputedValueMap = new Map<string, IComputedValue<object>>();
     let orderedObservableStates: object[] = [];
 
@@ -151,7 +149,7 @@ export class __RouterClass<TSchemaRecord, TViewDefinitionRecord> {
   private _buildStateMap(
     path: string[],
     statePartMap: Map<string, object>,
-    activeEntry: StackEntry | undefined,
+    activeEntry: RouterStackEntry | undefined,
   ): Map<string, object> {
     let {path: activePath, stateMap: activeStateMap} = activeEntry ?? {
       path: [],
@@ -204,28 +202,36 @@ export class __RouterClass<TSchemaRecord, TViewDefinitionRecord> {
   }
 }
 
+export interface RouterStackEntry {
+  path: string[];
+  stateMap: Map<string, object>;
+  viewComputedValueMap: Map<string, IComputedValue<object>>;
+}
+
 export type RouterConstructor = new <
   TSchemaRecord extends SchemaRecord,
-  TViewDefinitionRecord extends __RootViewDefinitionRecord<TSchemaRecord>,
+  TViewDefinitionRecord extends _RootViewDefinitionRecord<TSchemaRecord>,
 >(
   schemas: TSchemaRecord,
-  views: TViewDefinitionRecord,
-) => __RouterType<TSchemaRecord, TViewDefinitionRecord>;
+  views?: TViewDefinitionRecord,
+) => _RouterType<TSchemaRecord, TViewDefinitionRecord>;
 
-export const Router = __RouterClass as RouterConstructor;
+export const Router = _RouterClass as RouterConstructor;
 
 export type Router<
   TSchemaRecord extends __SchemaRecord,
-  TViewDefinitionRecord extends __RootViewDefinitionRecord<TSchemaRecord>,
-> = __RouterType<TSchemaRecord, TViewDefinitionRecord>;
+  TViewDefinitionRecord extends _RootViewDefinitionRecord<TSchemaRecord>,
+> = _RouterType<TSchemaRecord, TViewDefinitionRecord>;
 
-export type __RouterType<TSchemaRecord, TViewDefinitionRecord> = Exclude<
+export type __Router = _RouterClass<__SchemaRecord, object>;
+
+type _RouterType<TSchemaRecord, TViewDefinitionRecord> = Exclude<
   Exclude<keyof TViewDefinitionRecord, '$view'>,
   keyof TSchemaRecord
 > extends infer TExtraViewKey extends string
   ? [TExtraViewKey] extends [never]
-    ? __RouterClass<TSchemaRecord, TViewDefinitionRecord> & {
-        [TKey in Extract<keyof TSchemaRecord, string>]: __RouteType<
+    ? _RouterClass<TSchemaRecord, TViewDefinitionRecord> & {
+        [TKey in Extract<keyof TSchemaRecord, string>]: _RouteType<
           TSchemaRecord[TKey] extends infer TSchema extends object
             ? TSchema
             : {},
@@ -238,9 +244,3 @@ export type __RouterType<TSchemaRecord, TViewDefinitionRecord> = Exclude<
       }
     : {TypeError: `Unexpected view key "${TExtraViewKey}"`}
   : never;
-
-export interface StackEntry {
-  path: string[];
-  stateMap: Map<string, object>;
-  viewComputedValueMap: Map<string, IComputedValue<object>>;
-}
