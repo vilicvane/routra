@@ -9,8 +9,9 @@ import type {SchemaRecord, __SchemaRecord} from './schema';
 import type {_RootViewDefinitionRecord, __ViewDefinitionRecord} from './view';
 
 export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
-  @observable
-  $stack: RouterStackEntry[] = [];
+  readonly $stack: RouterStackEntry[] = observable.array([], {
+    deep: false,
+  });
 
   constructor(schemas: TSchemaRecord, views?: TViewDefinitionRecord);
   constructor(
@@ -47,7 +48,7 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
   }
 
   @computed
-  get __activeEntry(): RouterStackEntry {
+  get _activeEntry(): RouterStackEntry {
     this._assertNonEmptyStack();
 
     return _.last(this.$stack)!;
@@ -106,15 +107,23 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
     path: string[],
     observableStateMap: Map<string, object>,
   ): RouterStackEntry {
+    let lastKey = _.last(path)!;
+
     let viewComputedValueMap = new Map<string, IComputedValue<object>>();
-    let orderedObservableStates: object[] = [];
+
+    let observableStates: object[] = [];
 
     let upperViews = this._views;
 
     for (let key of path) {
-      orderedObservableStates.unshift(observableStateMap.get(key)!);
+      observableStates.unshift(observableStateMap.get(key)!);
 
-      let orderedObservableStatesToKey = [...orderedObservableStates];
+      let orderedObservableStatesToKey = [
+        {
+          $exact: key === lastKey,
+        },
+        ...observableStates,
+      ];
 
       let mergedObservableState = createMergedObjectProxy(
         orderedObservableStatesToKey,

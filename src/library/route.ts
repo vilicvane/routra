@@ -4,7 +4,7 @@ import {computed} from 'mobx';
 import {getCommonStartOfTwoArray} from './@utils';
 import type {__Router} from './router';
 import type {StateType, __Schema} from './schema';
-import type {_ViewBuilder} from './view';
+import type {IView, _ViewBuilder} from './view';
 
 export type __Route = _Route<__Schema, object, string[]>;
 
@@ -71,14 +71,14 @@ export class _RouteObject<TView, TPath extends string[]> {
   }
 
   @computed
-  get $view(): TView | undefined {
+  get $view(): (TView & IView) | undefined {
     let {path: activePath, viewComputedValueMap: viewMap} =
-      this.$router.__activeEntry;
+      this.$router._activeEntry;
 
     let path = this.$path;
 
     return getCommonStartOfTwoArray(path, activePath).length === path.length
-      ? (viewMap.get(this.$key)!.get() as unknown as TView)
+      ? (viewMap.get(this.$key)!.get() as any)
       : undefined;
   }
 
@@ -111,7 +111,7 @@ export type _RouteType<
   TPath extends string[],
 > = Exclude<
   Exclude<keyof TViewDefinitionRecord, '$view'>,
-  Exclude<keyof TSchema, `_{string}`>
+  Exclude<keyof TSchema, `$${string}`>
 > extends infer TExtraViewKey extends string
   ? [TExtraViewKey] extends [never]
     ? TUpperMergedState & StateType<TSchema> extends infer TMergedState
@@ -120,13 +120,13 @@ export type _RouteType<
           TViewDefinitionRecord extends {
             $view: _ViewBuilder<unknown, infer TView>;
           }
-            ? TMergedState & TView
-            : TMergedState,
+            ? TMergedState & TView & IView
+            : TMergedState & IView,
           TPath
         > & {
           [TKey in Exclude<
             Extract<keyof TSchema, string>,
-            `_{string}`
+            `$${string}`
           >]: _RouteType<
             TSchema[TKey] extends infer TChildSchema extends object
               ? TChildSchema

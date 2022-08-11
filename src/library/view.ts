@@ -24,7 +24,7 @@ type _ChildViewDefinitionRecord<TSchema, TUpperMergedState> =
     ? {
         [TKey in Exclude<
           Extract<keyof TSchema, string>,
-          `_{string}`
+          `$${string}`
         >]?: _ChildViewDefinitionRecord<
           TSchema[TKey] extends infer TChildSchema extends object
             ? TChildSchema
@@ -35,3 +35,7 @@ type _ChildViewDefinitionRecord<TSchema, TUpperMergedState> =
         $view?: _ViewBuilder<TMergedState, object>;
       }
     : never;
+
+export interface IView {
+  $exact: boolean;
+}

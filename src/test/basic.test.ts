@@ -34,9 +34,16 @@ test('simple case 1', () => {
   router.home.$reset();
 
   expect(router.$path).toEqual(['home']);
-  expect(router.$view).toEqual({user: 'vilicvane'});
 
-  expect(router.home.$view).toEqual({user: 'vilicvane'});
+  expect(router.$view).toEqual({
+    $exact: true,
+    user: 'vilicvane',
+  });
+
+  expect(router.home.$view).toEqual({
+    $exact: true,
+    user: 'vilicvane',
+  });
 
   expect(router.home.hello.$view).toBe(undefined);
 
@@ -44,20 +51,39 @@ test('simple case 1', () => {
 
   router.home({user: '123'}).hello({}).$push();
 
-  expect(router.home.$view).toEqual({user: '123'});
+  expect(router.home.$view).toEqual({
+    $exact: false,
+    user: '123',
+  });
 
   expect(router.home.hello.$view).toEqual({
+    $exact: true,
     user: '123',
     name: '',
     extra: '123',
   });
 
   type _ =
-    | AssertTrue<IsEqual<typeof router.home.$view, {user: string} | undefined>>
+    | AssertTrue<
+        IsEqual<
+          typeof router.home.$view,
+          | {
+              $exact: boolean;
+              user: string;
+            }
+          | undefined
+        >
+      >
     | AssertTrue<
         IsEqual<
           typeof router.home.hello.$view,
-          {user: string; name: string; extra: string} | undefined
+          | {
+              $exact: boolean;
+              user: string;
+              name: string;
+              extra: string;
+            }
+          | undefined
         >
       >;
 });
