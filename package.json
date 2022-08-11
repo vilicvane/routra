@@ -7,7 +7,6 @@
   "author": "vilicvane",
   "exports": {
     "types": "./bld/library/index.d.ts",
-    "source": "./src/library/index.ts",
     "require": "./bld/library/index.js"
   },
   "scripts": {
