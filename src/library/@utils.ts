@@ -18,37 +18,43 @@ export function createMergedObjectProxy(objects: object[]): object {
   return new Proxy(
     {},
     {
-      has(target, key) {
-        for (let observableState of objects) {
-          if (key in observableState) {
+      has(_target, key) {
+        for (let object of objects) {
+          if (key in object) {
             return true;
           }
         }
 
-        return key in target;
+        return false;
       },
-      get(target, key) {
-        for (let observableState of objects) {
-          if (key in observableState) {
-            return (observableState as any)[key];
+      get(_target, key) {
+        for (let object of objects) {
+          if (key in object) {
+            return (object as any)[key];
           }
         }
 
-        return (target as any)[key];
+        return undefined;
       },
-      getOwnPropertyDescriptor(target, key) {
-        for (let observableState of objects) {
-          let descriptor = Reflect.getOwnPropertyDescriptor(
-            observableState,
-            key,
-          );
+      set(_target, key, value) {
+        for (let object of objects) {
+          if (key in object) {
+            return Reflect.set(object, key, value);
+          }
+        }
+
+        return false;
+      },
+      getOwnPropertyDescriptor(_target, key) {
+        for (let object of objects) {
+          let descriptor = Reflect.getOwnPropertyDescriptor(object, key);
 
           if (descriptor) {
             return descriptor;
           }
         }
 
-        return Reflect.getOwnPropertyDescriptor(target, key);
+        return undefined;
       },
       ownKeys() {
         return _.uniq(objects.flatMap(object => Object.keys(object)));

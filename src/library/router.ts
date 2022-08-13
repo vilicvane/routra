@@ -133,12 +133,22 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
 
       let viewBuilder = views.$view;
 
+      if (
+        viewBuilder &&
+        // class has prototype writable false
+        Object.getOwnPropertyDescriptor(viewBuilder as any, 'prototype')
+          ?.writable === false
+      ) {
+        let ViewConstructor = viewBuilder as any;
+        viewBuilder = state => new ViewConstructor(state);
+      }
+
       let mergedViewComputedValue = computed(() => {
         if (!viewBuilder) {
           return mergedObservableState;
         }
 
-        let view = viewBuilder(mergedObservableState);
+        let view = (viewBuilder as any)(mergedObservableState);
 
         return createMergedObjectProxy([view, ...orderedObservableStatesToKey]);
       });

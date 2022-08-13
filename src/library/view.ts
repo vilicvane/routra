@@ -8,7 +8,9 @@ export type __ViewDefinition = {
   $view?: __ViewBuilder;
 } & __ViewDefinitionRecord;
 
-export type _ViewBuilder<TMergedState, TView> = (state: TMergedState) => TView;
+export type _ViewBuilder<TMergedState, TView> =
+  | (new (state: TMergedState) => TView)
+  | ((state: TMergedState) => TView);
 
 export type __ViewBuilder = _ViewBuilder<object, object>;
 
