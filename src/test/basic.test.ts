@@ -1,3 +1,4 @@
+import {runInAction} from 'mobx';
 import type {AssertTrue, IsEqual} from 'tslang';
 
 import {Router} from '../library';
@@ -62,6 +63,12 @@ test('simple case 1', () => {
     name: '',
     extra: '123',
   });
+
+  runInAction(() => {
+    router.home.hello.$view!.user = 'abc';
+  });
+
+  expect(router.home.$view!.user).toBe('abc');
 
   type _ =
     | AssertTrue<
