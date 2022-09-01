@@ -54,7 +54,11 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
     return _.last(this.$stack)!;
   }
 
-  _reset(path: string[], statePartMap: Map<string, object>): void {
+  _reset(
+    path: string[],
+    statePartMap: Map<string, object>,
+    newStatePart: object,
+  ): void {
     let stack = this.$stack;
 
     let stateMap = this._buildStateMap(path, statePartMap, _.last(stack));
@@ -62,10 +66,15 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
 
     runInAction(() => {
       stack.splice(0, Infinity, entry);
+      this._updateStateMapByPart(path, stateMap, newStatePart);
     });
   }
 
-  _push(path: string[], statePartMap: Map<string, object>): void {
+  _push(
+    path: string[],
+    statePartMap: Map<string, object>,
+    newStatePart: object,
+  ): void {
     this._assertNonEmptyStack();
 
     let stack = this.$stack;
@@ -75,17 +84,23 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
 
     runInAction(() => {
       stack.push(entry);
+      this._updateStateMapByPart(path, stateMap, newStatePart);
     });
   }
 
-  _replace(path: string[], statePartMap: Map<string, object>): void {
+  _replace(
+    path: string[],
+    newStateMap: Map<string, object>,
+    newStatePart: object,
+  ): void {
     let stack = this.$stack;
 
-    let stateMap = this._buildStateMap(path, statePartMap, _.last(stack)!);
+    let stateMap = this._buildStateMap(path, newStateMap, _.last(stack)!);
     let entry = this._buildEntry(path, stateMap);
 
     runInAction(() => {
       stack[stack.length - 1] = entry;
+      this._updateStateMapByPart(path, stateMap, newStatePart);
     });
   }
 
@@ -120,7 +135,9 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
 
       let orderedObservableStatesToKey = [
         {
-          $exact: key === lastKey,
+          get $exact(): boolean {
+            return key === lastKey;
+          },
         },
         ...observableStates,
       ];
@@ -167,12 +184,12 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
 
   private _buildStateMap(
     path: string[],
-    statePartMap: Map<string, object>,
+    newStateMap: Map<string, object>,
     activeEntry: RouterStackEntry | undefined,
   ): Map<string, object> {
     let {path: activePath, stateMap: activeStateMap} = activeEntry ?? {
       path: [],
-      stateMap: new Map(),
+      stateMap: new Map<string, object>(),
     };
 
     let stateMap = new Map<string, object>();
@@ -182,12 +199,9 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
     let upperSchemas = this._schemas;
 
     for (let key of commonStartKeys) {
-      let state = {
-        ...activeStateMap.get(key)!,
-        ...statePartMap.get(key),
-      };
+      let state = newStateMap.get(key);
 
-      stateMap.set(key, observable(state));
+      stateMap.set(key, state ? observable(state) : activeStateMap.get(key)!);
 
       let schemas = upperSchemas[key];
 
@@ -201,10 +215,15 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
         schemas = {};
       }
 
-      let state = {
-        ...schemas.$state,
-        ...statePartMap.get(key),
-      };
+      let state = newStateMap.get(key) ?? schemas.$state;
+
+      if (!state) {
+        throw new Error(
+          `State ${JSON.stringify(
+            key,
+          )} is missing and no default value is provided`,
+        );
+      }
 
       stateMap.set(key, observable(state));
 
@@ -212,6 +231,38 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
     }
 
     return stateMap;
+  }
+
+  private _updateStateMapByPart(
+    path: string[],
+    observableStateMap: Map<string, object>,
+    statePart: object,
+  ): void {
+    let observableStateEntries = path
+      .map((key): [string, object] => [key, observableStateMap.get(key)!])
+      .reverse();
+
+    statePartKeyValue: for (let [statePartKey, value] of Object.entries(
+      statePart,
+    )) {
+      for (let [pathKey, observableState] of observableStateEntries) {
+        if (statePartKey in observableState) {
+          if (Reflect.set(observableState, statePartKey, value)) {
+            continue statePartKeyValue;
+          } else {
+            throw new Error(
+              `Failed to update value of ${JSON.stringify(
+                statePartKey,
+              )} in ${JSON.stringify(pathKey)}`,
+            );
+          }
+        }
+      }
+
+      throw new Error(
+        `Failed to find value of ${JSON.stringify(statePartKey)} to update`,
+      );
+    }
   }
 
   private _assertNonEmptyStack(): void {

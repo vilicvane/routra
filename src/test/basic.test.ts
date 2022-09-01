@@ -49,7 +49,7 @@ test('simple case 1', () => {
 
   expect(router.about.$view).toBe(undefined);
 
-  router.home({user: '123'}).hello({}).$push();
+  router.home.hello.$push({user: '123'});
 
   expect(router.home.$view).toEqual({
     $exact: false,
@@ -86,6 +86,38 @@ test('simple case 1', () => {
           | undefined
         >
       >;
+});
+
+test('push pop with shared states', () => {
+  const router = new Router({
+    home: {
+      $state: {
+        user: 'admin',
+      },
+      hello: {
+        $state: {
+          name: '',
+        },
+      },
+    },
+  });
+
+  router.home.$reset();
+
+  router.home.hello.$push({user: 'abc'});
+
+  expect(router.home.hello.$view).toEqual({
+    $exact: true,
+    user: 'abc',
+    name: '',
+  });
+
+  router.home.hello.$pop();
+
+  expect(router.home.$view).toEqual({
+    $exact: true,
+    user: 'abc',
+  });
 });
 
 test('unexpected view key', () => {

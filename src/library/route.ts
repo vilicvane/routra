@@ -6,45 +6,44 @@ import type {__Router} from './router';
 import type {StateType, __Schema} from './schema';
 import type {IView, _ViewBuilder} from './view';
 
-export type __Route = _Route<__Schema, object, string[]>;
+export type __Route = _Route<__Schema, object, object, string[]>;
 
 export function _createRoute(
   router: __Router,
   schema: __Schema,
   path: string[],
-  statePartMap: Map<string, object>,
-): _Route<__Schema, object, string[]> {
-  let route: any = (state: object) => {
-    let alteredStatePartMap = new Map([
-      ...statePartMap,
-      [_.last(path)!, state],
-    ]);
-
-    return _createRoute(router, schema, path, alteredStatePartMap);
-  };
+  newStateMap: Map<string, object>,
+): _Route<__Schema, object, object, string[]> {
+  let route: any = (state: object) =>
+    _createRoute(
+      router,
+      schema,
+      path,
+      new Map([...newStateMap, [_.last(path)!, state]]),
+    );
 
   Object.setPrototypeOf(
     route,
-    new _RouteObject(router, schema, path, statePartMap),
+    new _RouteObject(router, schema, path, newStateMap),
   );
 
   return route;
 }
 
-export class _RouteObject<TView, TPath extends string[]> {
+export class _RouteObject<TMergedState, TView, TPath extends string[]> {
   readonly $key = _.last(this.$path)!;
 
   constructor(
     $router: __Router,
     schema: __Schema,
     $path: TPath,
-    stateParts: Map<string, object>,
+    newStateMap: Map<string, object>,
   );
   constructor(
     readonly $router: __Router,
     schema: __Schema,
     readonly $path: TPath,
-    private __stateParts: Map<string, object>,
+    private __newStateMap: Map<string, object>,
   ) {
     let pathKeySet = new Set($path);
 
@@ -65,7 +64,7 @@ export class _RouteObject<TView, TPath extends string[]> {
         $router,
         childSchema as __Schema,
         [...$path, key],
-        __stateParts,
+        __newStateMap,
       );
     }
   }
@@ -82,16 +81,16 @@ export class _RouteObject<TView, TPath extends string[]> {
       : undefined;
   }
 
-  $reset(): void {
-    this.$router._reset(this.$path, this.__stateParts);
+  $reset(statePart: Partial<TMergedState> = {}): void {
+    this.$router._reset(this.$path, this.__newStateMap, statePart);
   }
 
-  $push(): void {
-    this.$router._push(this.$path, this.__stateParts);
+  $push(statePart: Partial<TMergedState> = {}): void {
+    this.$router._push(this.$path, this.__newStateMap, statePart);
   }
 
-  $replace(): void {
-    this.$router._replace(this.$path, this.__stateParts);
+  $replace(statePart: Partial<TMergedState> = {}): void {
+    this.$router._replace(this.$path, this.__newStateMap, statePart);
   }
 
   $pop(): void {
@@ -99,9 +98,9 @@ export class _RouteObject<TView, TPath extends string[]> {
   }
 }
 
-export interface _Route<TSchema, TView, TPath extends string[]>
-  extends _RouteObject<TView, TPath> {
-  (state: Partial<StateType<TSchema>>): this;
+export interface _Route<TSchema, TMergedState, TView, TPath extends string[]>
+  extends _RouteObject<TMergedState, TView, TPath> {
+  (state: StateType<TSchema>): this;
 }
 
 export type _RouteType<
@@ -117,6 +116,7 @@ export type _RouteType<
     ? TUpperMergedState & StateType<TSchema> extends infer TMergedState
       ? _Route<
           TSchema,
+          TMergedState,
           TViewDefinitionRecord extends {
             $view: _ViewBuilder<unknown, infer TView>;
           }
