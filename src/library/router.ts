@@ -118,6 +118,14 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
     });
   }
 
+  $pop(): void {
+    let stack = this.$stack;
+
+    runInAction(() => {
+      stack.pop();
+    });
+  }
+
   private _buildEntry(
     path: string[],
     observableStateMap: Map<string, object>,
