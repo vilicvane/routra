@@ -1,21 +1,21 @@
 import _ from 'lodash';
 import {computed} from 'mobx';
 
-import {getCommonStartOfTwoArray} from './@utils';
 import type {__Router} from './router';
 import type {StateType, __Schema} from './schema';
+import type {_Transition} from './transition';
 import type {IView, _ViewBuilder} from './view';
 
-export type __Route = _Route<__Schema, object, object, string[]>;
+export type __Route = _Route<__Schema, object, object, string[], unknown>;
 
 export function _createRoute(
   router: __Router,
   schema: __Schema,
   path: string[],
   newStateMap: Map<string, object>,
-): _Route<__Schema, object, object, string[]> {
-  let route: any = (state: object) =>
-    _createRoute(
+): _Route<__Schema, object, object, string[], unknown> {
+  const route: any = (state: object) =>
+    new _RouteObject(
       router,
       schema,
       path,
@@ -30,7 +30,12 @@ export function _createRoute(
   return route;
 }
 
-export class _RouteObject<TMergedState, TView, TPath extends string[]> {
+export class _RouteObject<
+  TMergedState,
+  TView,
+  TPath extends string[],
+  TTransitionState,
+> {
   readonly $key = _.last(this.$path)!;
 
   constructor(
@@ -43,9 +48,9 @@ export class _RouteObject<TMergedState, TView, TPath extends string[]> {
     readonly $router: __Router,
     schema: __Schema,
     readonly $path: TPath,
-    private __newStateMap: Map<string, object>,
+    private _newStateMap: Map<string, object>,
   ) {
-    let pathKeySet = new Set($path);
+    const pathKeySet = new Set($path);
 
     for (let [key, childSchema] of Object.entries(schema)) {
       if (key.startsWith('$')) {
@@ -64,42 +69,87 @@ export class _RouteObject<TMergedState, TView, TPath extends string[]> {
         $router,
         childSchema as __Schema,
         [...$path, key],
-        __newStateMap,
+        _newStateMap,
       );
     }
   }
 
   @computed
-  get $view(): (TView & IView) | undefined {
-    let {path: activePath, viewComputedValueMap: viewMap} =
-      this.$router._activeEntry;
+  get $views(): (TView & IView<TTransitionState>)[] {
+    const path = this.$path;
 
-    let path = this.$path;
+    // TODO: use depth
+    const key = this.$key;
 
-    return getCommonStartOfTwoArray(path, activePath).length === path.length
-      ? (viewMap.get(this.$key)!.get() as any)
-      : undefined;
+    return this.$router
+      ._getActiveEntries(path)
+      .map(entry => entry.viewComputedValueMap.get(key)!.get() as any);
   }
 
   $reset(statePart: Partial<TMergedState> = {}): void {
-    this.$router._reset(this.$path, this.__newStateMap, statePart);
+    const router = this.$router;
+
+    router._reset(
+      {
+        path: this.$path,
+        newStateMap: this._newStateMap,
+        newStatePart: statePart,
+      },
+      router._getStableActiveViewEntry(),
+    );
   }
 
   $push(statePart: Partial<TMergedState> = {}): void {
-    this.$router._push(this.$path, this.__newStateMap, statePart);
+    const router = this.$router;
+
+    router._push(
+      {
+        path: this.$path,
+        newStateMap: this._newStateMap,
+        newStatePart: statePart,
+      },
+      router._requireStableActiveViewEntry(),
+    );
   }
 
   $replace(statePart: Partial<TMergedState> = {}): void {
-    this.$router._replace(this.$path, this.__newStateMap, statePart);
+    const router = this.$router;
+
+    router._replace(
+      {
+        path: this.$path,
+        newStateMap: this._newStateMap,
+        newStatePart: statePart,
+      },
+      router._requireStableActiveViewEntry(),
+    );
   }
 
-  $pop(): void {
-    this.$router._pop(this.$path);
+  $transition(
+    statePart: Partial<TMergedState> = {},
+    transitionState?: TTransitionState,
+  ): _Transition<TTransitionState> {
+    const router = this.$router;
+
+    return router._transition(
+      {
+        path: this.$path,
+        newStateMap: this._newStateMap,
+        newStatePart: statePart,
+      },
+      router._requireStableActiveViewEntry(),
+      transitionState,
+    );
   }
 }
 
-export interface _Route<TSchema, TMergedState, TView, TPath extends string[]>
-  extends _RouteObject<TMergedState, TView, TPath> {
+export interface _Route<
+  TSchema,
+  TMergedState,
+  TView,
+  TPath extends string[],
+  TTransitionState,
+> extends _RouteObject<TMergedState, TView, TPath, TTransitionState> {
   (state: StateType<TSchema>): this;
 }
 
@@ -108,6 +158,7 @@ export type _RouteType<
   TViewDefinitionRecord,
   TUpperMergedState,
   TPath extends string[],
+  TTransitionState,
 > = Exclude<
   Exclude<keyof TViewDefinitionRecord, '$view'>,
   Exclude<keyof TSchema, `$${string}`>
@@ -120,9 +171,10 @@ export type _RouteType<
           TViewDefinitionRecord extends {
             $view: _ViewBuilder<unknown, infer TView>;
           }
-            ? TMergedState & TView & IView
-            : TMergedState & IView,
-          TPath
+            ? TMergedState & TView & IView<TTransitionState>
+            : TMergedState & IView<TTransitionState>,
+          TPath,
+          TTransitionState
         > & {
           [TKey in Exclude<
             Extract<keyof TSchema, string>,
@@ -135,7 +187,8 @@ export type _RouteType<
               ? TViewDefinitionRecord[TKey]
               : {},
             TMergedState,
-            [...TPath, TKey]
+            [...TPath, TKey],
+            TTransitionState
           >;
         }
       : never

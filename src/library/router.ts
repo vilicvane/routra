@@ -2,21 +2,34 @@ import _ from 'lodash';
 import type {IComputedValue} from 'mobx';
 import {computed, makeObservable, observable, runInAction} from 'mobx';
 
+import type {__ViewEntry} from './@state';
 import {createMergedObjectProxy, getCommonStartOfTwoArray} from './@utils';
+import {PreviousRoute} from './previous-route';
+import type {_PreviousTransition} from './previous-transition';
+import {_createPreviousTransition} from './previous-transition';
 import type {_RouteType} from './route';
 import {_createRoute} from './route';
 import type {SchemaRecord, __SchemaRecord} from './schema';
-import type {_RootViewDefinitionRecord, __ViewDefinitionRecord} from './view';
+import type {_Transition} from './transition';
+import {_createTransition} from './transition';
+import type {
+  _RootViewDefinitionRecord,
+  __RootViewDefinitionRecord,
+} from './view';
 
-export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
-  readonly $stack: RouterStackEntry[] = observable.array([], {
+export class _RouterClass<
+  TSchemaRecord,
+  TRootViewDefinitionRecord,
+  TTransitionState,
+> {
+  private _activeEntrySet = observable.set<__ViewEntry>([], {
     deep: false,
   });
 
-  constructor(schemas: TSchemaRecord, views?: TViewDefinitionRecord);
+  constructor(schemas: TSchemaRecord, views?: TRootViewDefinitionRecord);
   constructor(
     private _schemas: __SchemaRecord,
-    private _views: __ViewDefinitionRecord = {},
+    private _views: __RootViewDefinitionRecord = {},
   ) {
     makeObservable(this);
 
@@ -30,131 +43,214 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
   }
 
   @computed
-  get $path(): object {
-    this._assertNonEmptyStack();
+  get $previous(): PreviousRoute<TTransitionState> | undefined {
+    const activeEntry = this._getStableActiveViewEntry();
 
-    return _.last(this.$stack)!.path;
-  }
+    const previousEntry = activeEntry?.previous;
 
-  @computed
-  get $view(): object {
-    this._assertNonEmptyStack();
-
-    let {path, viewComputedValueMap} = _.last(this.$stack)!;
-
-    let key = _.last(path)!;
-
-    return viewComputedValueMap.get(key)!.get()!;
-  }
-
-  @computed
-  get _activeEntry(): RouterStackEntry {
-    this._assertNonEmptyStack();
-
-    return _.last(this.$stack)!;
+    return previousEntry ? new PreviousRoute(this, previousEntry) : undefined;
   }
 
   _reset(
-    path: string[],
-    statePartMap: Map<string, object>,
-    newStatePart: object,
+    {path, newStateMap, newStatePart}: RouteTarget,
+    activeEntry: __ViewEntry | undefined,
   ): void {
-    let stack = this.$stack;
-
-    let stateMap = this._buildStateMap(path, statePartMap, _.last(stack));
-    let entry = this._buildEntry(path, stateMap);
+    const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
+    const entry = this._buildEntry(path, stateMap, undefined);
 
     runInAction(() => {
-      stack.splice(0, Infinity, entry);
-      this._updateStateMapByPart(path, stateMap, newStatePart);
+      updateStateMapByPart(path, stateMap, newStatePart);
+
+      const activeEntrySet = this._activeEntrySet;
+
+      activeEntrySet.clear();
+      activeEntrySet.add(entry);
     });
   }
 
   _push(
-    path: string[],
-    statePartMap: Map<string, object>,
-    newStatePart: object,
+    {path, newStateMap, newStatePart}: RouteTarget,
+    activeEntry: __ViewEntry,
+    transitionEntry?: __ViewEntry,
   ): void {
-    this._assertNonEmptyStack();
-
-    let stack = this.$stack;
-
-    let stateMap = this._buildStateMap(path, statePartMap, _.last(stack)!);
-    let entry = this._buildEntry(path, stateMap);
+    const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
+    const entry = this._buildEntry(path, stateMap, activeEntry);
 
     runInAction(() => {
-      stack.push(entry);
-      this._updateStateMapByPart(path, stateMap, newStatePart);
+      updateStateMapByPart(path, stateMap, newStatePart);
+
+      const activeEntrySet = this._activeEntrySet;
+
+      if (transitionEntry) {
+        activeEntrySet.delete(transitionEntry);
+      }
+
+      activeEntrySet.delete(activeEntry);
+      activeEntrySet.add(entry);
     });
   }
 
   _replace(
-    path: string[],
-    newStateMap: Map<string, object>,
-    newStatePart: object,
+    {path, newStateMap, newStatePart}: RouteTarget,
+    activeEntry: __ViewEntry,
+    transitionEntry?: __ViewEntry,
   ): void {
-    let stack = this.$stack;
-
-    let stateMap = this._buildStateMap(path, newStateMap, _.last(stack)!);
-    let entry = this._buildEntry(path, stateMap);
+    const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
+    const entry = this._buildEntry(path, stateMap, activeEntry.previous);
 
     runInAction(() => {
-      stack[stack.length - 1] = entry;
-      this._updateStateMapByPart(path, stateMap, newStatePart);
+      updateStateMapByPart(path, stateMap, newStatePart);
+
+      const activeEntrySet = this._activeEntrySet;
+
+      if (transitionEntry) {
+        activeEntrySet.delete(transitionEntry);
+      }
+
+      activeEntrySet.delete(activeEntry);
+      activeEntrySet.add(entry);
     });
   }
 
-  _pop(path: string[]): void {
-    this._assertNonEmptyStack();
+  _back(activeEntry: __ViewEntry, transitionEntry?: __ViewEntry): void {
+    const previousEntry = activeEntry.previous;
 
-    let stack = this.$stack;
-
-    if (!_.isEqual(path, _.last(stack)!.path)) {
+    if (!previousEntry) {
       return;
     }
 
     runInAction(() => {
-      stack.pop();
+      const activeEntrySet = this._activeEntrySet;
+
+      if (transitionEntry) {
+        activeEntrySet.delete(transitionEntry);
+      }
+
+      activeEntrySet.delete(activeEntry);
+      activeEntrySet.add(previousEntry!);
     });
   }
 
-  $pop(): void {
-    let stack = this.$stack;
+  _transition(
+    {path, newStateMap, newStatePart}: RouteTarget,
+    activeEntry: __ViewEntry,
+    transitionState = this._views.$transition,
+  ): _Transition<unknown> {
+    const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
+
+    const transitionEntry = this._buildEntry(
+      path,
+      stateMap,
+      undefined,
+      newStatePart,
+      transitionState,
+    );
 
     runInAction(() => {
-      stack.pop();
+      this._activeEntrySet.add(transitionEntry);
     });
+
+    return _createTransition(this, activeEntry, transitionEntry, newStateMap);
+  }
+
+  _previousTransition(
+    activeEntry: __ViewEntry,
+    transitionState = this._views.$transition,
+  ): _PreviousTransition<unknown> {
+    const previousEntry = activeEntry.previous;
+
+    if (!previousEntry) {
+      throw new Error('No previous entry');
+    }
+
+    const transitionEntry: __ViewEntry = {
+      ...previousEntry,
+      transition: {
+        newStatePart: {},
+        observableState: observable.box(transitionState),
+      },
+    };
+
+    runInAction(() => {
+      this._activeEntrySet.add(transitionEntry);
+    });
+
+    return _createPreviousTransition(this, activeEntry, transitionEntry);
+  }
+
+  _abortTransition(transitionEntry: __ViewEntry): void {
+    runInAction(() => {
+      this._activeEntrySet.delete(transitionEntry);
+    });
+  }
+
+  _getActiveEntries(path: string[]): __ViewEntry[] {
+    return Array.from(this._activeEntrySet).filter(
+      entry =>
+        getCommonStartOfTwoArray(entry.path, path).length === path.length,
+    );
+  }
+
+  _requireStableActiveViewEntry(): __ViewEntry {
+    const entry = this._getStableActiveViewEntry();
+
+    if (!entry) {
+      throw new Error('No stable active view entry');
+    }
+
+    return entry;
+  }
+
+  _getStableActiveViewEntry(): __ViewEntry | undefined {
+    for (const entry of this._activeEntrySet) {
+      if (entry.transition) {
+        continue;
+      }
+
+      return entry;
+    }
+
+    return undefined;
   }
 
   private _buildEntry(
     path: string[],
     observableStateMap: Map<string, object>,
-  ): RouterStackEntry {
-    let lastKey = _.last(path)!;
+    previous: __ViewEntry | undefined,
+    transitionNewStatePart?: object,
+    transitionState?: unknown,
+  ): __ViewEntry {
+    const lastKey = _.last(path)!;
 
-    let viewComputedValueMap = new Map<string, IComputedValue<object>>();
+    const viewComputedValueMap = new Map<string, IComputedValue<object>>();
 
-    let observableStates: object[] = [];
+    const observableStates: object[] = [];
 
     let upperViews = this._views;
 
-    for (let key of path) {
+    for (const key of path) {
       observableStates.unshift(observableStateMap.get(key)!);
 
-      let orderedObservableStatesToKey = [
+      const exact = key === lastKey;
+
+      const orderedObservableStatesToKey = [
         {
           get $exact(): boolean {
-            return key === lastKey;
+            return exact;
+          },
+          get $transition(): unknown {
+            return entry.transition?.observableState.get();
           },
         },
+        ...(transitionNewStatePart ? [transitionNewStatePart] : []),
         ...observableStates,
       ];
 
-      let mergedObservableState = createMergedObjectProxy(
+      const mergedObservableState = createMergedObjectProxy(
         orderedObservableStatesToKey,
       );
 
-      let views = upperViews[key] ?? {};
+      const views = upperViews[key] ?? {};
 
       let viewBuilder = views.$view;
 
@@ -164,16 +260,16 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
         Object.getOwnPropertyDescriptor(viewBuilder as any, 'prototype')
           ?.writable === false
       ) {
-        let ViewConstructor = viewBuilder as any;
+        const ViewConstructor = viewBuilder as any;
         viewBuilder = state => new ViewConstructor(state);
       }
 
-      let mergedViewComputedValue = computed(() => {
+      const mergedViewComputedValue = computed(() => {
         if (!viewBuilder) {
           return mergedObservableState;
         }
 
-        let view = (viewBuilder as any)(mergedObservableState);
+        const view = (viewBuilder as any)(mergedObservableState);
 
         return createMergedObjectProxy([view, ...orderedObservableStatesToKey]);
       });
@@ -183,47 +279,57 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
       upperViews = views;
     }
 
-    return {
+    const entry: __ViewEntry = {
       path,
       stateMap: observableStateMap,
       viewComputedValueMap,
+      previous,
+      transition: transitionNewStatePart
+        ? {
+            newStatePart: transitionNewStatePart,
+            observableState: observable.box(transitionState),
+          }
+        : undefined,
     };
+
+    return entry;
   }
 
   private _buildStateMap(
     path: string[],
     newStateMap: Map<string, object>,
-    activeEntry: RouterStackEntry | undefined,
+    activeEntry: __ViewEntry | undefined,
   ): Map<string, object> {
-    let {path: activePath, stateMap: activeStateMap} = activeEntry ?? {
+    const {path: activePath, stateMap: activeStateMap} = activeEntry ?? {
       path: [],
       stateMap: new Map<string, object>(),
     };
 
-    let stateMap = new Map<string, object>();
+    const stateMap = new Map<string, object>();
 
-    let commonStartKeys = getCommonStartOfTwoArray(path, activePath);
+    const commonStartKeys = getCommonStartOfTwoArray(path, activePath);
 
     let upperSchemas = this._schemas;
 
-    for (let key of commonStartKeys) {
-      let state = newStateMap.get(key);
+    for (const key of commonStartKeys) {
+      const state = newStateMap.get(key);
 
       stateMap.set(key, state ? observable(state) : activeStateMap.get(key)!);
 
-      let schemas = upperSchemas[key];
+      const schemas = upperSchemas[key];
 
       upperSchemas = typeof schemas === 'object' ? schemas : {};
     }
 
-    for (let key of path.slice(commonStartKeys.length)) {
+    for (const key of path.slice(commonStartKeys.length)) {
       let schemas = upperSchemas[key];
 
       if (schemas === true) {
         schemas = {};
       }
 
-      let state = newStateMap.get(key) ?? schemas.$state;
+      const state =
+        newStateMap.get(key) ?? ('$state' in schemas ? schemas.$state : {});
 
       if (!state) {
         throw new Error(
@@ -240,85 +346,94 @@ export class _RouterClass<TSchemaRecord, TViewDefinitionRecord> {
 
     return stateMap;
   }
+}
 
-  private _updateStateMapByPart(
-    path: string[],
-    observableStateMap: Map<string, object>,
-    statePart: object,
-  ): void {
-    let observableStateEntries = path
-      .map((key): [string, object] => [key, observableStateMap.get(key)!])
-      .reverse();
+function updateStateMapByPart(
+  path: string[],
+  observableStateMap: Map<string, object>,
+  statePart: object,
+): void {
+  const observableStateEntries = path
+    .map((key): [string, object] => [key, observableStateMap.get(key)!])
+    .reverse();
 
-    statePartKeyValue: for (let [statePartKey, value] of Object.entries(
-      statePart,
-    )) {
-      for (let [pathKey, observableState] of observableStateEntries) {
-        if (statePartKey in observableState) {
-          if (Reflect.set(observableState, statePartKey, value)) {
-            continue statePartKeyValue;
-          } else {
-            throw new Error(
-              `Failed to update value of ${JSON.stringify(
-                statePartKey,
-              )} in ${JSON.stringify(pathKey)}`,
-            );
-          }
+  statePartKeyValue: for (const [statePartKey, value] of Object.entries(
+    statePart,
+  )) {
+    for (const [pathKey, observableState] of observableStateEntries) {
+      if (statePartKey in observableState) {
+        if (Reflect.set(observableState, statePartKey, value)) {
+          continue statePartKeyValue;
+        } else {
+          throw new Error(
+            `Failed to update value of ${JSON.stringify(
+              statePartKey,
+            )} in ${JSON.stringify(pathKey)}`,
+          );
         }
       }
-
-      throw new Error(
-        `Failed to find value of ${JSON.stringify(statePartKey)} to update`,
-      );
     }
-  }
 
-  private _assertNonEmptyStack(): void {
-    if (this.$stack.length === 0) {
-      throw new Error('Router has not been initialized, push or reset first');
-    }
+    throw new Error(
+      `Failed to find value of ${JSON.stringify(statePartKey)} to update`,
+    );
   }
 }
 
-export interface RouterStackEntry {
+interface RouteTarget {
   path: string[];
-  stateMap: Map<string, object>;
-  viewComputedValueMap: Map<string, IComputedValue<object>>;
+  newStateMap: Map<string, object>;
+  newStatePart: object;
 }
 
 export type RouterConstructor = new <
   TSchemaRecord extends SchemaRecord,
-  TViewDefinitionRecord extends _RootViewDefinitionRecord<TSchemaRecord>,
+  TRootViewDefinitionRecord extends _RootViewDefinitionRecord<TSchemaRecord>,
 >(
   schemas: TSchemaRecord,
-  views?: TViewDefinitionRecord,
-) => _RouterType<TSchemaRecord, TViewDefinitionRecord>;
+  views?: TRootViewDefinitionRecord,
+) => _RouterType<TSchemaRecord, TRootViewDefinitionRecord>;
 
 export const Router = _RouterClass as RouterConstructor;
 
 export type Router<
   TSchemaRecord extends __SchemaRecord,
-  TViewDefinitionRecord extends _RootViewDefinitionRecord<TSchemaRecord>,
-> = _RouterType<TSchemaRecord, TViewDefinitionRecord>;
+  TRootViewDefinitionRecord extends _RootViewDefinitionRecord<TSchemaRecord>,
+> = _RouterType<TSchemaRecord, TRootViewDefinitionRecord>;
 
-export type __Router = _RouterClass<__SchemaRecord, object>;
+export type __Router = _RouterClass<__SchemaRecord, object, unknown>;
 
-type _RouterType<TSchemaRecord, TViewDefinitionRecord> = Exclude<
-  Exclude<keyof TViewDefinitionRecord, '$view'>,
-  keyof TSchemaRecord
-> extends infer TExtraViewKey extends string
+type _RouterType<TSchemaRecord, TRootViewDefinitionRecord> = [
+  Exclude<
+    Exclude<keyof TRootViewDefinitionRecord, `$${string}`>,
+    keyof TSchemaRecord
+  >,
+  _TransitionState<TRootViewDefinitionRecord>,
+] extends [infer TExtraViewKey extends string, infer TTransitionState]
   ? [TExtraViewKey] extends [never]
-    ? _RouterClass<TSchemaRecord, TViewDefinitionRecord> & {
+    ? _RouterClass<
+        TSchemaRecord,
+        TRootViewDefinitionRecord,
+        TTransitionState
+      > & {
         [TKey in Extract<keyof TSchemaRecord, string>]: _RouteType<
           TSchemaRecord[TKey] extends infer TSchema extends object
             ? TSchema
             : {},
-          TViewDefinitionRecord extends Record<TKey, object>
-            ? TViewDefinitionRecord[TKey]
+          TRootViewDefinitionRecord extends Record<TKey, object>
+            ? TRootViewDefinitionRecord[TKey]
             : {},
           {},
-          [TKey]
+          [TKey],
+          TTransitionState
         >;
       }
     : {TypeError: `Unexpected view key "${TExtraViewKey}"`}
   : never;
+
+type _TransitionState<TRootViewDefinitionRecord> =
+  TRootViewDefinitionRecord extends {
+    $transition: infer TransitionState;
+  }
+    ? TransitionState
+    : undefined;

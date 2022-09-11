@@ -1,4 +1,4 @@
-import {runInAction} from 'mobx';
+import {autorun, reaction, runInAction} from 'mobx';
 import type {AssertTrue, IsEqual} from 'tslang';
 
 import {Router} from '../library';
@@ -34,63 +34,72 @@ test('simple case 1', () => {
 
   router.home.$reset();
 
-  expect(router.$path).toEqual(['home']);
+  // expect(router.$path).toEqual(['home']);
 
-  expect(router.$view).toEqual({
-    $exact: true,
-    user: 'vilicvane',
-  });
+  // expect(router.$view).toEqual({
+  //   $exact: true,
+  //   user: 'vilicvane',
+  // });
 
-  expect(router.home.$view).toEqual({
-    $exact: true,
-    user: 'vilicvane',
-  });
+  expect(router.home.$views).toEqual([
+    {
+      $exact: true,
+      $transition: undefined,
+      user: 'vilicvane',
+    },
+  ]);
 
-  expect(router.home.hello.$view).toBe(undefined);
+  expect(router.home.hello.$views).toEqual([]);
 
-  expect(router.about.$view).toBe(undefined);
+  expect(router.about.$views).toEqual([]);
 
   router.home.hello.$push({user: '123'});
 
-  expect(router.home.$view).toEqual({
-    $exact: false,
-    user: '123',
-  });
+  expect(router.home.$views).toEqual([
+    {
+      $exact: false,
+      $transition: undefined,
+      user: '123',
+    },
+  ]);
 
-  expect(router.home.hello.$view).toEqual({
-    $exact: true,
-    user: '123',
-    name: '',
-    extra: '123',
-  });
+  expect(router.home.hello.$views).toEqual([
+    {
+      $exact: true,
+      $transition: undefined,
+      user: '123',
+      name: '',
+      extra: '123',
+    },
+  ]);
 
   runInAction(() => {
-    router.home.hello.$view!.user = 'abc';
+    router.home.hello.$views[0].user = 'abc';
   });
 
-  expect(router.home.$view!.user).toBe('abc');
+  expect(router.home.$views[0].user).toBe('abc');
 
   type _ =
     | AssertTrue<
         IsEqual<
-          typeof router.home.$view,
-          | {
-              $exact: boolean;
-              user: string;
-            }
-          | undefined
+          typeof router.home.$views,
+          {
+            $exact: boolean;
+            $transition: undefined;
+            user: string;
+          }[]
         >
       >
     | AssertTrue<
         IsEqual<
-          typeof router.home.hello.$view,
-          | {
-              $exact: boolean;
-              user: string;
-              name: string;
-              extra: string;
-            }
-          | undefined
+          typeof router.home.hello.$views,
+          {
+            $exact: boolean;
+            $transition: undefined;
+            user: string;
+            name: string;
+            extra: string;
+          }[]
         >
       >;
 });
@@ -113,18 +122,113 @@ test('push pop with shared states', () => {
 
   router.home.hello.$push({user: 'abc'});
 
-  expect(router.home.hello.$view).toEqual({
-    $exact: true,
-    user: 'abc',
-    name: '',
-  });
+  expect(router.home.hello.$views).toEqual([
+    {
+      $exact: true,
+      $transition: undefined,
+      user: 'abc',
+      name: '',
+    },
+  ]);
 
-  router.home.hello.$pop();
+  // router.home.hello.$pop();
 
-  expect(router.home.$view).toEqual({
-    $exact: true,
-    user: 'abc',
-  });
+  // expect(router.home.$views).toEqual([
+  //   {
+  //     $exact: true,
+  //     $transition: undefined,
+  //     user: 'abc',
+  //   },
+  // ]);
+});
+
+test('transition', () => {
+  const router = new Router(
+    {
+      inbox: {
+        message: {
+          $state: undefined! as {
+            id: string;
+          },
+        },
+      },
+      home: true,
+    },
+    {
+      $transition: undefined as
+        | {
+            progress: number;
+          }
+        | undefined,
+    },
+  );
+
+  router.home.$reset();
+
+  const transitionStates_1: unknown[] = [];
+
+  reaction(
+    () => router.inbox.message.$views[0]?.$transition,
+    state => {
+      transitionStates_1.push(state);
+    },
+  );
+
+  const transition_1 = router.inbox
+    .message({id: 'abc'})
+    .$transition({}, {progress: 0});
+
+  transition_1({progress: 0.1});
+  transition_1({progress: 0.3});
+  transition_1({progress: 0.8});
+
+  expect(transitionStates_1).toEqual([
+    {progress: 0},
+    {progress: 0.1},
+    {progress: 0.3},
+    {progress: 0.8},
+  ]);
+
+  expect(router.home.$views).toEqual([
+    {
+      $exact: true,
+      $transition: undefined,
+    },
+  ]);
+
+  expect(router.inbox.$views).toEqual([
+    {
+      $exact: false,
+      $transition: {progress: 0.8},
+    },
+  ]);
+
+  expect(router.inbox.message.$views).toEqual([
+    {
+      $exact: true,
+      $transition: {progress: 0.8},
+      id: 'abc',
+    },
+  ]);
+
+  transition_1.$push();
+
+  expect(router.home.$views).toEqual([]);
+
+  expect(router.inbox.$views).toEqual([
+    {
+      $exact: false,
+      $transition: undefined,
+    },
+  ]);
+
+  expect(router.inbox.message.$views).toEqual([
+    {
+      $exact: true,
+      $transition: undefined,
+      id: 'abc',
+    },
+  ]);
 });
 
 test('unexpected view key', () => {

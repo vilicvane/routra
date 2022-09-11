@@ -4,6 +4,10 @@ export type __ViewDefinitionRecord = {
   [TKey in string]: __ViewDefinition;
 };
 
+export type __RootViewDefinitionRecord = {
+  $transition?: unknown;
+} & __ViewDefinitionRecord;
+
 export type __ViewDefinition = {
   $view?: __ViewBuilder;
 } & __ViewDefinitionRecord;
@@ -15,6 +19,8 @@ export type _ViewBuilder<TMergedState, TView> =
 export type __ViewBuilder = _ViewBuilder<object, object>;
 
 export type _RootViewDefinitionRecord<TSchemaRecord> = {
+  $transition?: unknown;
+} & {
   [TKey in keyof TSchemaRecord]?: _ChildViewDefinitionRecord<
     TSchemaRecord[TKey] extends infer TSchema extends object ? TSchema : {},
     {}
@@ -38,6 +44,7 @@ type _ChildViewDefinitionRecord<TSchema, TUpperMergedState> =
       }
     : never;
 
-export interface IView {
+export interface IView<TTransitionState> {
   $exact: boolean;
+  $transition: TTransitionState | undefined;
 }
