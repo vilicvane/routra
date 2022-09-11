@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 export function getCommonStartOfTwoArray<T>(a: T[], b: T[]): T[] {
-  let minLength = Math.min(a.length, b.length);
+  const minLength = Math.min(a.length, b.length);
 
   let index = 0;
 
@@ -19,7 +19,7 @@ export function createMergedObjectProxy(objects: object[]): object {
     {},
     {
       has(_target, key) {
-        for (let object of objects) {
+        for (const object of objects) {
           if (key in object) {
             return true;
           }
@@ -28,7 +28,7 @@ export function createMergedObjectProxy(objects: object[]): object {
         return false;
       },
       get(_target, key) {
-        for (let object of objects) {
+        for (const object of objects) {
           if (key in object) {
             return (object as any)[key];
           }
@@ -37,7 +37,7 @@ export function createMergedObjectProxy(objects: object[]): object {
         return undefined;
       },
       set(_target, key, value) {
-        for (let object of objects) {
+        for (const object of objects) {
           if (key in object) {
             return Reflect.set(object, key, value);
           }
@@ -46,8 +46,8 @@ export function createMergedObjectProxy(objects: object[]): object {
         return false;
       },
       getOwnPropertyDescriptor(_target, key) {
-        for (let object of objects) {
-          let descriptor = Reflect.getOwnPropertyDescriptor(object, key);
+        for (const object of objects) {
+          const descriptor = Reflect.getOwnPropertyDescriptor(object, key);
 
           if (descriptor) {
             return descriptor;

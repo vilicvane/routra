@@ -1,14 +1,13 @@
 import _ from 'lodash';
-import type {IComputedValue} from 'mobx';
-import {computed, makeObservable, observable, runInAction} from 'mobx';
+import type {IComputedValue, IObservableValue} from 'mobx';
+import {computed, observable, runInAction} from 'mobx';
 
 import type {__ViewEntry} from './@state';
 import {createMergedObjectProxy, getCommonStartOfTwoArray} from './@utils';
-import {PreviousRoute} from './previous-route';
-import type {_PreviousTransition} from './previous-transition';
-import {_createPreviousTransition} from './previous-transition';
 import type {_RouteType} from './route';
 import {_createRoute} from './route';
+import type {RouteOperationSetter, _RouteOperation} from './route-operation';
+import {_createRouteOperation} from './route-operation';
 import type {SchemaRecord, __SchemaRecord} from './schema';
 import type {_Transition} from './transition';
 import {_createTransition} from './transition';
@@ -31,8 +30,6 @@ export class _RouterClass<
     private _schemas: __SchemaRecord,
     private _views: __RootViewDefinitionRecord = {},
   ) {
-    makeObservable(this);
-
     for (let [key, schema] of Object.entries(_schemas)) {
       if (schema === true) {
         schema = {};
@@ -42,146 +39,127 @@ export class _RouterClass<
     }
   }
 
-  @computed
-  get $previous(): PreviousRoute<TTransitionState> | undefined {
-    const activeEntry = this._getStableActiveViewEntry();
-
-    const previousEntry = activeEntry?.previous;
-
-    return previousEntry ? new PreviousRoute(this, previousEntry) : undefined;
+  get _transitionStateDefault(): unknown {
+    return this._views.$transition;
   }
 
   _reset(
-    {path, newStateMap, newStatePart}: RouteTarget,
-    activeEntry: __ViewEntry | undefined,
-  ): void {
+    path: string[],
+    newStateMap: Map<string, object>,
+  ): _RouteOperation<unknown, unknown> {
+    const activeEntry = this._getStableActiveViewEntry();
+
     const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
-    const entry = this._buildEntry(path, stateMap, undefined);
+    const targetEntry = this._buildEntry(path, stateMap, undefined);
 
-    runInAction(() => {
-      updateStateMapByPart(path, stateMap, newStatePart);
-
+    return _createRouteOperation(this, targetEntry, () => {
       const activeEntrySet = this._activeEntrySet;
 
-      activeEntrySet.clear();
-      activeEntrySet.add(entry);
+      runInAction(() => {
+        activeEntrySet.replace([targetEntry]);
+      });
     });
   }
 
   _push(
-    {path, newStateMap, newStatePart}: RouteTarget,
-    activeEntry: __ViewEntry,
-    transitionEntry?: __ViewEntry,
-  ): void {
+    path: string[],
+    newStateMap: Map<string, object>,
+  ): _RouteOperation<unknown, unknown> {
+    const activeEntry = this._requireStableActiveViewEntry();
+
     const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
-    const entry = this._buildEntry(path, stateMap, activeEntry);
+    const targetEntry = this._buildEntry(path, stateMap, activeEntry);
 
-    runInAction(() => {
-      updateStateMapByPart(path, stateMap, newStatePart);
-
+    return _createRouteOperation(this, targetEntry, obsoleteEntries => {
       const activeEntrySet = this._activeEntrySet;
 
-      if (transitionEntry) {
-        activeEntrySet.delete(transitionEntry);
+      activeEntrySet.delete(activeEntry);
+
+      for (const entry of obsoleteEntries) {
+        activeEntrySet.delete(entry);
       }
 
-      activeEntrySet.delete(activeEntry);
-      activeEntrySet.add(entry);
+      activeEntrySet.add(targetEntry);
     });
   }
 
   _replace(
-    {path, newStateMap, newStatePart}: RouteTarget,
-    activeEntry: __ViewEntry,
-    transitionEntry?: __ViewEntry,
-  ): void {
+    path: string[],
+    newStateMap: Map<string, object>,
+  ): _RouteOperation<unknown, unknown> {
+    const activeEntry = this._requireStableActiveViewEntry();
+
     const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
-    const entry = this._buildEntry(path, stateMap, activeEntry.previous);
+    const targetEntry = this._buildEntry(path, stateMap, activeEntry.previous);
 
-    runInAction(() => {
-      updateStateMapByPart(path, stateMap, newStatePart);
-
+    return _createRouteOperation(this, targetEntry, obsoleteEntries => {
       const activeEntrySet = this._activeEntrySet;
 
-      if (transitionEntry) {
-        activeEntrySet.delete(transitionEntry);
+      activeEntrySet.delete(activeEntry);
+
+      for (const entry of obsoleteEntries) {
+        activeEntrySet.delete(entry);
       }
 
-      activeEntrySet.delete(activeEntry);
-      activeEntrySet.add(entry);
+      activeEntrySet.add(targetEntry);
     });
   }
 
-  _back(activeEntry: __ViewEntry, transitionEntry?: __ViewEntry): void {
-    const previousEntry = activeEntry.previous;
+  get $back(): _RouteOperation<unknown, TTransitionState> {
+    const activeEntry = this._requireStableActiveViewEntry();
 
-    if (!previousEntry) {
-      return;
+    const targetEntry = activeEntry.previous;
+
+    if (!targetEntry) {
+      throw new Error('No previous entry');
     }
 
-    runInAction(() => {
+    return _createRouteOperation(this, targetEntry, obsoleteEntries => {
       const activeEntrySet = this._activeEntrySet;
 
-      if (transitionEntry) {
-        activeEntrySet.delete(transitionEntry);
+      activeEntrySet.delete(activeEntry);
+
+      for (const entry of obsoleteEntries) {
+        activeEntrySet.delete(entry);
       }
 
-      activeEntrySet.delete(activeEntry);
-      activeEntrySet.add(previousEntry!);
+      activeEntrySet.add(targetEntry);
     });
   }
 
   _transition(
-    {path, newStateMap, newStatePart}: RouteTarget,
-    activeEntry: __ViewEntry,
-    transitionState = this._views.$transition,
+    targetEntry: __ViewEntry,
+    newStatePart: object,
+    transitionState: unknown,
+    setter: RouteOperationSetter,
   ): _Transition<unknown> {
-    const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
+    const {path, stateMap, previous} = targetEntry;
 
-    const transitionEntry = this._buildEntry(
-      path,
-      stateMap,
-      undefined,
-      newStatePart,
-      transitionState,
+    const observableTransitionState = observable.box(
+      transitionState ?? this._transitionStateDefault,
     );
 
+    const transitionEntry = this._buildEntry(path, stateMap, previous, {
+      newStatePart,
+      observableState: observableTransitionState,
+    });
+
     runInAction(() => {
       this._activeEntrySet.add(transitionEntry);
     });
 
-    return _createTransition(this, activeEntry, transitionEntry, newStateMap);
-  }
-
-  _previousTransition(
-    activeEntry: __ViewEntry,
-    transitionState = this._views.$transition,
-  ): _PreviousTransition<unknown> {
-    const previousEntry = activeEntry.previous;
-
-    if (!previousEntry) {
-      throw new Error('No previous entry');
-    }
-
-    const transitionEntry: __ViewEntry = {
-      ...previousEntry,
-      transition: {
-        newStatePart: {},
-        observableState: observable.box(transitionState),
+    return _createTransition(
+      targetEntry,
+      transitionEntry,
+      newStatePart,
+      observableTransitionState,
+      setter,
+      () => {
+        runInAction(() => {
+          this._activeEntrySet.delete(transitionEntry);
+        });
       },
-    };
-
-    runInAction(() => {
-      this._activeEntrySet.add(transitionEntry);
-    });
-
-    return _createPreviousTransition(this, activeEntry, transitionEntry);
-  }
-
-  _abortTransition(transitionEntry: __ViewEntry): void {
-    runInAction(() => {
-      this._activeEntrySet.delete(transitionEntry);
-    });
+    );
   }
 
   _getActiveEntries(path: string[]): __ViewEntry[] {
@@ -217,8 +195,9 @@ export class _RouterClass<
     path: string[],
     observableStateMap: Map<string, object>,
     previous: __ViewEntry | undefined,
-    transitionNewStatePart?: object,
-    transitionState?: unknown,
+    transition?:
+      | {newStatePart: object; observableState: IObservableValue<unknown>}
+      | undefined,
   ): __ViewEntry {
     const lastKey = _.last(path)!;
 
@@ -239,10 +218,10 @@ export class _RouterClass<
             return exact;
           },
           get $transition(): unknown {
-            return entry.transition?.observableState.get();
+            return transition?.observableState.get();
           },
         },
-        ...(transitionNewStatePart ? [transitionNewStatePart] : []),
+        ...(transition ? [transition.newStatePart] : []),
         ...observableStates,
       ];
 
@@ -284,12 +263,7 @@ export class _RouterClass<
       stateMap: observableStateMap,
       viewComputedValueMap,
       previous,
-      transition: transitionNewStatePart
-        ? {
-            newStatePart: transitionNewStatePart,
-            observableState: observable.box(transitionState),
-          }
-        : undefined,
+      transition: transition !== undefined,
     };
 
     return entry;
@@ -346,44 +320,6 @@ export class _RouterClass<
 
     return stateMap;
   }
-}
-
-function updateStateMapByPart(
-  path: string[],
-  observableStateMap: Map<string, object>,
-  statePart: object,
-): void {
-  const observableStateEntries = path
-    .map((key): [string, object] => [key, observableStateMap.get(key)!])
-    .reverse();
-
-  statePartKeyValue: for (const [statePartKey, value] of Object.entries(
-    statePart,
-  )) {
-    for (const [pathKey, observableState] of observableStateEntries) {
-      if (statePartKey in observableState) {
-        if (Reflect.set(observableState, statePartKey, value)) {
-          continue statePartKeyValue;
-        } else {
-          throw new Error(
-            `Failed to update value of ${JSON.stringify(
-              statePartKey,
-            )} in ${JSON.stringify(pathKey)}`,
-          );
-        }
-      }
-    }
-
-    throw new Error(
-      `Failed to find value of ${JSON.stringify(statePartKey)} to update`,
-    );
-  }
-}
-
-interface RouteTarget {
-  path: string[];
-  newStateMap: Map<string, object>;
-  newStatePart: object;
 }
 
 export type RouterConstructor = new <

@@ -1,4 +1,4 @@
-import {autorun, reaction, runInAction} from 'mobx';
+import {reaction, runInAction} from 'mobx';
 import type {AssertTrue, IsEqual} from 'tslang';
 
 import {Router} from '../library';
@@ -33,13 +33,6 @@ test('simple case 1', () => {
   );
 
   router.home.$reset();
-
-  // expect(router.$path).toEqual(['home']);
-
-  // expect(router.$view).toEqual({
-  //   $exact: true,
-  //   user: 'vilicvane',
-  // });
 
   expect(router.home.$views).toEqual([
     {
@@ -122,6 +115,14 @@ test('push pop with shared states', () => {
 
   router.home.hello.$push({user: 'abc'});
 
+  expect(router.home.$views).toEqual([
+    {
+      $exact: false,
+      $transition: undefined,
+      user: 'abc',
+    },
+  ]);
+
   expect(router.home.hello.$views).toEqual([
     {
       $exact: true,
@@ -131,15 +132,17 @@ test('push pop with shared states', () => {
     },
   ]);
 
-  // router.home.hello.$pop();
+  router.$back();
 
-  // expect(router.home.$views).toEqual([
-  //   {
-  //     $exact: true,
-  //     $transition: undefined,
-  //     user: 'abc',
-  //   },
-  // ]);
+  expect(router.home.$views).toEqual([
+    {
+      $exact: true,
+      $transition: undefined,
+      user: 'abc',
+    },
+  ]);
+
+  expect(router.home.hello.$views).toEqual([]);
 });
 
 test('transition', () => {
@@ -176,7 +179,7 @@ test('transition', () => {
 
   const transition_1 = router.inbox
     .message({id: 'abc'})
-    .$transition({}, {progress: 0});
+    .$push.$transition({}, {progress: 0});
 
   transition_1({progress: 0.1});
   transition_1({progress: 0.3});
@@ -211,7 +214,7 @@ test('transition', () => {
     },
   ]);
 
-  transition_1.$push();
+  transition_1.$complete();
 
   expect(router.home.$views).toEqual([]);
 

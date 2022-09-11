@@ -1,71 +1,53 @@
+import type {IObservableValue} from 'mobx';
 import {runInAction} from 'mobx';
 
 import type {__ViewEntry} from './@state';
-import type {__Router} from './router';
+import {updateStateMapByPart} from './@state';
+import type {RouteOperationSetter} from './route-operation';
 
 export function _createTransition(
-  router: __Router,
-  activeEntry: __ViewEntry,
+  targetEntry: __ViewEntry,
   transitionEntry: __ViewEntry,
-  newStateMap: Map<string, object>,
+  newStatePart: object,
+  observableTransitionState: IObservableValue<unknown>,
+  setter: RouteOperationSetter,
+  abortHandler: TransitionAbortHandler,
 ): _Transition<unknown> {
-  const transition: any = (transitionState: object) => {
+  return Object.setPrototypeOf((transitionState: object) => {
     runInAction(() => {
-      transitionEntry.transition!.observableState.set(transitionState);
+      observableTransitionState.set(transitionState);
     });
-  };
-
-  Object.setPrototypeOf(
-    transition,
-    new _TransitionObject(router, activeEntry, transitionEntry, newStateMap),
-  );
-
-  return transition;
+  }, new _TransitionObject(targetEntry, transitionEntry, newStatePart, setter, abortHandler));
 }
 
 export interface _Transition<TTransitionState> extends _TransitionObject {
   (state: TTransitionState): void;
 }
 
+export type TransitionAbortHandler = () => void;
+
 export class _TransitionObject {
   constructor(
-    readonly $router: __Router,
-    private activeEntry: __ViewEntry,
+    private targetEntry: __ViewEntry,
     private transitionEntry: __ViewEntry,
-    private newStateMap: Map<string, object>,
+    private newStatePart: object,
+    private setter: RouteOperationSetter,
+    private abortHandler: TransitionAbortHandler,
   ) {}
 
-  $push(): void {
-    const transitionEntry = this.transitionEntry;
-    const {path, transition} = transitionEntry;
+  $complete(): void {
+    const {path, stateMap} = this.targetEntry;
+    const setter = this.setter;
 
-    this.$router._push(
-      {
-        path,
-        newStateMap: this.newStateMap,
-        newStatePart: transition!.newStatePart,
-      },
-      this.activeEntry,
-      transitionEntry,
-    );
-  }
-
-  $replace(): void {
-    const transitionEntry = this.transitionEntry;
-    const {path, transition} = transitionEntry;
-
-    this.$router._replace(
-      {
-        path,
-        newStateMap: this.newStateMap,
-        newStatePart: transition!.newStatePart,
-      },
-      this.activeEntry,
-      transitionEntry,
-    );
+    runInAction(() => {
+      updateStateMapByPart(path, stateMap, this.newStatePart);
+      setter([this.transitionEntry]);
+    });
   }
 
   $abort(): void {
-    this.$router._abortTransition(this.transitionEntry);
+    const abortHandler = this.abortHandler;
+
+    abortHandler();
   }
 }

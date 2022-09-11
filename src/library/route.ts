@@ -1,6 +1,8 @@
 import _ from 'lodash';
 import {computed} from 'mobx';
 
+import type {_RouteOperation} from './route-operation';
+import {_createRouteOperation} from './route-operation';
 import type {__Router} from './router';
 import type {StateType, __Schema} from './schema';
 import type {_Transition} from './transition';
@@ -86,60 +88,16 @@ export class _RouteObject<
       .map(entry => entry.viewComputedValueMap.get(key)!.get() as any);
   }
 
-  $reset(statePart: Partial<TMergedState> = {}): void {
-    const router = this.$router;
-
-    router._reset(
-      {
-        path: this.$path,
-        newStateMap: this._newStateMap,
-        newStatePart: statePart,
-      },
-      router._getStableActiveViewEntry(),
-    );
+  get $reset(): _RouteOperation<TMergedState, TTransitionState> {
+    return this.$router._reset(this.$path, this._newStateMap);
   }
 
-  $push(statePart: Partial<TMergedState> = {}): void {
-    const router = this.$router;
-
-    router._push(
-      {
-        path: this.$path,
-        newStateMap: this._newStateMap,
-        newStatePart: statePart,
-      },
-      router._requireStableActiveViewEntry(),
-    );
+  get $push(): _RouteOperation<TMergedState, TTransitionState> {
+    return this.$router._push(this.$path, this._newStateMap);
   }
 
-  $replace(statePart: Partial<TMergedState> = {}): void {
-    const router = this.$router;
-
-    router._replace(
-      {
-        path: this.$path,
-        newStateMap: this._newStateMap,
-        newStatePart: statePart,
-      },
-      router._requireStableActiveViewEntry(),
-    );
-  }
-
-  $transition(
-    statePart: Partial<TMergedState> = {},
-    transitionState?: TTransitionState,
-  ): _Transition<TTransitionState> {
-    const router = this.$router;
-
-    return router._transition(
-      {
-        path: this.$path,
-        newStateMap: this._newStateMap,
-        newStatePart: statePart,
-      },
-      router._requireStableActiveViewEntry(),
-      transitionState,
-    );
+  get $replace(): _RouteOperation<TMergedState, TTransitionState> {
+    return this.$router._replace(this.$path, this._newStateMap);
   }
 }
 

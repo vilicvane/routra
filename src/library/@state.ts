@@ -1,14 +1,41 @@
-import type {IComputedValue, IObservableValue} from 'mobx';
+import type {IComputedValue} from 'mobx';
 
 export interface __ViewEntry {
   path: string[];
   stateMap: Map<string, object>;
   viewComputedValueMap: Map<string, IComputedValue<object>>;
   previous?: __ViewEntry;
-  transition?: __ViewTransitionData;
+  transition: boolean;
 }
 
-export interface __ViewTransitionData {
-  newStatePart: object;
-  observableState: IObservableValue<unknown>;
+export function updateStateMapByPart(
+  path: string[],
+  observableStateMap: Map<string, object>,
+  statePart: object,
+): void {
+  const observableStateEntries = path
+    .map((key): [string, object] => [key, observableStateMap.get(key)!])
+    .reverse();
+
+  statePartKeyValue: for (const [statePartKey, value] of Object.entries(
+    statePart,
+  )) {
+    for (const [pathKey, observableState] of observableStateEntries) {
+      if (statePartKey in observableState) {
+        if (Reflect.set(observableState, statePartKey, value)) {
+          continue statePartKeyValue;
+        } else {
+          throw new Error(
+            `Failed to update value of ${JSON.stringify(
+              statePartKey,
+            )} in ${JSON.stringify(pathKey)}`,
+          );
+        }
+      }
+    }
+
+    throw new Error(
+      `Failed to find value of ${JSON.stringify(statePartKey)} to update`,
+    );
+  }
 }
