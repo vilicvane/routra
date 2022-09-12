@@ -4,3 +4,4 @@ export * from './router';
 export * from './view';
 export * from './route-operation';
 export * from './transition';
+export * from './utils';

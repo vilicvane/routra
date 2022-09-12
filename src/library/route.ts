@@ -80,12 +80,9 @@ export class _RouteObject<
   get $views(): (TView & IView<TTransitionState>)[] {
     const path = this.$path;
 
-    // TODO: use depth
-    const key = this.$key;
-
     return this.$router
       ._getActiveEntries(path)
-      .map(entry => entry.viewComputedValueMap.get(key)!.get() as any);
+      .map(entry => entry.viewComputedValues[path.length - 1]!.get() as any);
   }
 
   get $reset(): _RouteOperation<TMergedState, TTransitionState> {

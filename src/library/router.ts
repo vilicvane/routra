@@ -201,7 +201,7 @@ export class _RouterClass<
   ): __ViewEntry {
     const lastKey = _.last(path)!;
 
-    const viewComputedValueMap = new Map<string, IComputedValue<object>>();
+    const viewComputedValues: IComputedValue<object>[] = [];
 
     const observableStates: object[] = [];
 
@@ -253,7 +253,7 @@ export class _RouterClass<
         return createMergedObjectProxy([view, ...orderedObservableStatesToKey]);
       });
 
-      viewComputedValueMap.set(key, mergedViewComputedValue);
+      viewComputedValues.push(mergedViewComputedValue);
 
       upperViews = views;
     }
@@ -261,7 +261,7 @@ export class _RouterClass<
     const entry: __ViewEntry = {
       path,
       stateMap: observableStateMap,
-      viewComputedValueMap,
+      viewComputedValues,
       previous,
       transition: transition !== undefined,
     };

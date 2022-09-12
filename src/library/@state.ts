@@ -3,7 +3,7 @@ import type {IComputedValue} from 'mobx';
 export interface __ViewEntry {
   path: string[];
   stateMap: Map<string, object>;
-  viewComputedValueMap: Map<string, IComputedValue<object>>;
+  viewComputedValues: IComputedValue<object>[];
   previous?: __ViewEntry;
   transition: boolean;
 }
