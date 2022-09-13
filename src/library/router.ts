@@ -6,8 +6,12 @@ import type {__ViewEntry} from './@state';
 import {createMergedObjectProxy, getCommonStartOfTwoArray} from './@utils';
 import type {_RouteType} from './route';
 import {_createRoute} from './route';
-import type {RouteOperationSetter, _RouteOperation} from './route-operation';
-import {_createRouteOperation} from './route-operation';
+import type {
+  RouteOperationSetter,
+  _RouteBack,
+  _RouteOperation,
+} from './route-operation';
+import {_createRouteBack, _createRouteOperation} from './route-operation';
 import type {SchemaRecord, __SchemaRecord} from './schema';
 import type {_Transition} from './transition';
 import {_createTransition} from './transition';
@@ -39,8 +43,30 @@ export class _RouterClass<
     }
   }
 
-  get _transitionStateDefault(): unknown {
-    return this._views.$transition;
+  get $back(): _RouteBack<TTransitionState> {
+    const activeEntry = this._requireStableActiveViewEntry();
+
+    const targetEntry = activeEntry.previous;
+
+    if (!targetEntry) {
+      throw new Error('No previous entry');
+    }
+
+    return _createRouteBack(this, targetEntry, obsoleteEntries => {
+      const activeEntrySet = this._activeEntrySet;
+
+      activeEntrySet.delete(activeEntry);
+
+      for (const entry of obsoleteEntries) {
+        activeEntrySet.delete(entry);
+      }
+
+      activeEntrySet.add(targetEntry);
+    });
+  }
+
+  get $ableToBack(): boolean {
+    return this._getStableActiveViewEntry()?.previous !== undefined;
   }
 
   _reset(
@@ -105,28 +131,6 @@ export class _RouterClass<
     });
   }
 
-  get $back(): _RouteOperation<unknown, TTransitionState> {
-    const activeEntry = this._requireStableActiveViewEntry();
-
-    const targetEntry = activeEntry.previous;
-
-    if (!targetEntry) {
-      throw new Error('No previous entry');
-    }
-
-    return _createRouteOperation(this, targetEntry, obsoleteEntries => {
-      const activeEntrySet = this._activeEntrySet;
-
-      activeEntrySet.delete(activeEntry);
-
-      for (const entry of obsoleteEntries) {
-        activeEntrySet.delete(entry);
-      }
-
-      activeEntrySet.add(targetEntry);
-    });
-  }
-
   _transition(
     targetEntry: __ViewEntry,
     newStatePart: object,
@@ -136,7 +140,7 @@ export class _RouterClass<
     const {path, stateMap, previous} = targetEntry;
 
     const observableTransitionState = observable.box(
-      transitionState ?? this._transitionStateDefault,
+      transitionState ?? this._views.$transition,
     );
 
     const transitionEntry = this._buildEntry(path, stateMap, previous, {
@@ -169,7 +173,7 @@ export class _RouterClass<
     );
   }
 
-  _requireStableActiveViewEntry(): __ViewEntry {
+  private _requireStableActiveViewEntry(): __ViewEntry {
     const entry = this._getStableActiveViewEntry();
 
     if (!entry) {
@@ -179,7 +183,7 @@ export class _RouterClass<
     return entry;
   }
 
-  _getStableActiveViewEntry(): __ViewEntry | undefined {
+  private _getStableActiveViewEntry(): __ViewEntry | undefined {
     for (const entry of this._activeEntrySet) {
       if (entry.transition) {
         continue;
