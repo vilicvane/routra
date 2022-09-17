@@ -1,6 +1,7 @@
 import type {IComputedValue} from 'mobx';
 
 export interface __ViewEntry {
+  id: number;
   path: string[];
   stateMap: Map<string, object>;
   viewComputedValues: IComputedValue<object>[];

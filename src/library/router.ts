@@ -137,13 +137,14 @@ export class _RouterClass<
     transitionState: unknown,
     setter: RouteOperationSetter,
   ): _Transition<unknown> {
-    const {path, stateMap, previous} = targetEntry;
+    const {id, path, stateMap, previous} = targetEntry;
 
     const observableTransitionState = observable.box(
       transitionState ?? this._views.$transition,
     );
 
     const transitionEntry = this._buildEntry(path, stateMap, previous, {
+      id,
       newStatePart,
       observableState: observableTransitionState,
     });
@@ -200,9 +201,15 @@ export class _RouterClass<
     observableStateMap: Map<string, object>,
     previous: __ViewEntry | undefined,
     transition?:
-      | {newStatePart: object; observableState: IObservableValue<unknown>}
+      | {
+          id: number;
+          newStatePart: object;
+          observableState: IObservableValue<unknown>;
+        }
       | undefined,
   ): __ViewEntry {
+    const id = transition?.id ?? ++_RouterClass.lastViewEntryId;
+
     const lastKey = _.last(path)!;
 
     const viewComputedValues: IComputedValue<object>[] = [];
@@ -218,6 +225,9 @@ export class _RouterClass<
 
       const orderedObservableStatesToKey = [
         {
+          get $id(): number {
+            return id;
+          },
           get $exact(): boolean {
             return exact;
           },
@@ -263,6 +273,7 @@ export class _RouterClass<
     }
 
     const entry: __ViewEntry = {
+      id,
       path,
       stateMap: observableStateMap,
       viewComputedValues,
@@ -324,15 +335,20 @@ export class _RouterClass<
 
     return stateMap;
   }
+
+  static lastViewEntryId = 0;
 }
 
-export type RouterConstructor = new <
-  TSchemaRecord extends SchemaRecord,
-  TRootViewDefinitionRecord extends _RootViewDefinitionRecord<TSchemaRecord>,
->(
-  schemas: TSchemaRecord,
-  views?: TRootViewDefinitionRecord,
-) => _RouterType<TSchemaRecord, TRootViewDefinitionRecord>;
+export interface RouterConstructor {
+  new <
+    TSchemaRecord extends SchemaRecord,
+    TRootViewDefinitionRecord extends _RootViewDefinitionRecord<TSchemaRecord>,
+  >(
+    schemas: TSchemaRecord,
+    views?: TRootViewDefinitionRecord,
+  ): _RouterType<TSchemaRecord, TRootViewDefinitionRecord>;
+  lastViewEntryId: number;
+}
 
 export const Router = _RouterClass as RouterConstructor;
 

@@ -45,6 +45,7 @@ type _ChildViewDefinitionRecord<TSchema, TUpperMergedState> =
     : never;
 
 export interface IView<TTransitionState> {
+  $id: number;
   $exact: boolean;
   $transition: TTransitionState | undefined;
 }
