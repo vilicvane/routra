@@ -119,7 +119,10 @@ export type _RouteType<
   Exclude<keyof TSchema, `$${string}`>
 > extends infer TExtraViewKey extends string
   ? [TExtraViewKey] extends [never]
-    ? TUpperMergedState & StateType<TSchema> extends infer TMergedState
+    ? _MergeState<
+        TUpperMergedState,
+        StateType<TSchema>
+      > extends infer TMergedState
       ? _Route<
           TSchema,
           TMergedState,
@@ -149,3 +152,6 @@ export type _RouteType<
       : never
     : {TypeError: `Unexpected view key "${TExtraViewKey}"`}
   : never;
+
+export type _MergeState<TUpperState, TState> = Omit<TUpperState, keyof TState> &
+  TState;

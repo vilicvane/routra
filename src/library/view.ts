@@ -1,3 +1,4 @@
+import type {_MergeState} from './route';
 import type {StateType} from './schema';
 
 export type __ViewDefinitionRecord = {
@@ -27,22 +28,24 @@ export type _RootViewDefinitionRecord<TSchemaRecord> = {
   >;
 };
 
-type _ChildViewDefinitionRecord<TSchema, TUpperMergedState> =
-  TUpperMergedState & StateType<TSchema> extends infer TMergedState
-    ? {
-        [TKey in Exclude<
-          Extract<keyof TSchema, string>,
-          `$${string}`
-        >]?: _ChildViewDefinitionRecord<
-          TSchema[TKey] extends infer TChildSchema extends object
-            ? TChildSchema
-            : {},
-          TMergedState
-        >;
-      } & {
-        $view?: _ViewBuilder<TMergedState, object>;
-      }
-    : never;
+type _ChildViewDefinitionRecord<TSchema, TUpperMergedState> = _MergeState<
+  TUpperMergedState,
+  StateType<TSchema>
+> extends infer TMergedState
+  ? {
+      [TKey in Exclude<
+        Extract<keyof TSchema, string>,
+        `$${string}`
+      >]?: _ChildViewDefinitionRecord<
+        TSchema[TKey] extends infer TChildSchema extends object
+          ? TChildSchema
+          : {},
+        TMergedState
+      >;
+    } & {
+      $view?: _ViewBuilder<TMergedState, object>;
+    }
+  : never;
 
 export interface IView<TTransitionState> {
   $id: number;
