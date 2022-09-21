@@ -1,8 +1,8 @@
 {
-  "name": "pile-em-up",
+  "name": "routra",
   "version": "0.0.0",
-  "description": "Pile 'Em Up",
-  "repository": "https://github.com/vilic/pile-em-up.git",
+  "description": "Routra",
+  "repository": "https://github.com/vilic/routra.git",
   "license": "MIT",
   "author": "vilicvane",
   "exports": {
@@ -20,8 +20,8 @@
   },
   "devDependencies": {
     "@mufan/code": "^0.2.15",
-    "@mufan/eslint-plugin": "^0.1.70",
-    "eslint": "^8.23.0",
+    "@mufan/eslint-plugin": "^0.1.72",
+    "eslint": "^8.23.1",
     "prettier": "^2.7.1",
     "rimraf": "^3.0.2",
     "run-in-every": "^0.2.0",
