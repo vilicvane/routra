@@ -9,6 +9,7 @@ module.exports = {
     tsProjects: [
       {
         name: 'library',
+        exportSourceAs: 'source',
       },
       {
         name: 'test',
