@@ -34,6 +34,7 @@ export type SchemaRecord = {
 
 export type Schema = {
   $state?: object;
+  $exact?: boolean;
 } & SchemaRecord;
 
 export type __SchemaRecord = {
@@ -42,6 +43,7 @@ export type __SchemaRecord = {
 
 export type __Schema = {
   $state?: object;
+  $exact?: boolean;
 } & __SchemaRecord;
 
 export interface SchemaStatePart<TState extends object> {

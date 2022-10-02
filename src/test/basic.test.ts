@@ -1,7 +1,7 @@
 import {reaction, runInAction} from 'mobx';
 import type {AssertTrue, IsEqual} from 'tslang';
 
-import {Router} from '../library';
+import {Router, _RouteNodeObject, _RouteObject} from '../library';
 
 test('simple case 1', () => {
   const router = new Router(
@@ -318,5 +318,27 @@ test('unexpected view key', () => {
           typeof router_2.home.hello,
           {TypeError: 'Unexpected view key "world"'}
         >
+      >;
+});
+
+test('$exact false support', () => {
+  const router_1 = new Router({
+    home: {
+      $exact: false,
+      hello: true,
+      world: true,
+    },
+    about: true,
+  });
+
+  expect(router_1.home instanceof _RouteNodeObject).toBe(true);
+  expect(router_1.home instanceof _RouteObject).toBe(false);
+  expect(router_1.home.world instanceof _RouteObject).toBe(true);
+  expect(router_1.about instanceof _RouteObject).toBe(true);
+
+  type _ =
+    | AssertTrue<typeof router_1.home extends {$reset: unknown} ? false : true>
+    | AssertTrue<
+        typeof router_1.home.world extends {$reset: unknown} ? true : false
       >;
 });

@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import {computed} from 'mobx';
+import {computed, makeObservable} from 'mobx';
 
 import type {_RouteOperation} from './route-operation';
 import {_createRouteOperation} from './route-operation';
@@ -16,42 +16,32 @@ export function _createRoute(
   path: string[],
   newStateMap: Map<string, object>,
 ): _Route<__Schema, object, object, string[], unknown> {
+  const Route = schema.$exact === false ? _RouteNodeObject : _RouteObject;
+
   const route: any = (state: object) =>
-    new _RouteObject(
+    new Route(
       router,
       schema,
       path,
       new Map([...newStateMap, [_.last(path)!, state]]),
     );
 
-  Object.setPrototypeOf(
-    route,
-    new _RouteObject(router, schema, path, newStateMap),
-  );
+  Object.setPrototypeOf(route, new Route(router, schema, path, newStateMap));
 
   return route;
 }
 
-export class _RouteObject<
-  TMergedState,
-  TView,
-  TPath extends string[],
-  TTransitionState,
-> {
+export class _RouteNodeObject<TView, TPath extends string[], TTransitionState> {
   readonly $key = _.last(this.$path)!;
 
-  constructor(
-    $router: __Router,
-    schema: __Schema,
-    $path: TPath,
-    newStateMap: Map<string, object>,
-  );
   constructor(
     readonly $router: __Router,
     schema: __Schema,
     readonly $path: TPath,
-    private _newStateMap: Map<string, object>,
+    protected _newStateMap: Map<string, object>,
   ) {
+    makeObservable(this);
+
     const pathKeySet = new Set($path);
 
     for (let [key, childSchema] of Object.entries(schema)) {
@@ -83,6 +73,31 @@ export class _RouteObject<
     return this.$router
       ._getActiveEntries(path)
       .map(entry => entry.viewComputedValues[path.length - 1]!.get() as any);
+  }
+}
+
+export interface _RouteNode<
+  TSchema,
+  TView,
+  TPath extends string[],
+  TTransitionState,
+> extends _RouteNodeObject<TView, TPath, TTransitionState> {
+  (state: StateType<TSchema>): this;
+}
+
+export class _RouteObject<
+  TMergedState,
+  TView,
+  TPath extends string[],
+  TTransitionState,
+> extends _RouteNodeObject<TView, TPath, TTransitionState> {
+  constructor(
+    $router: __Router,
+    schema: __Schema,
+    $path: TPath,
+    newStateMap: Map<string, object>,
+  ) {
+    super($router, schema, $path, newStateMap);
   }
 
   get $reset(): _RouteOperation<TMergedState, TTransitionState> {
@@ -123,17 +138,17 @@ export type _RouteType<
         TUpperMergedState,
         StateType<TSchema>
       > extends infer TMergedState
-      ? _Route<
-          TSchema,
-          TMergedState,
+      ? ((
           TViewDefinitionRecord extends {
             $view: _ViewBuilder<unknown, infer TView>;
           }
             ? TMergedState & TView & IView<TTransitionState>
-            : TMergedState & IView<TTransitionState>,
-          TPath,
-          TTransitionState
-        > & {
+            : TMergedState & IView<TTransitionState>
+        ) extends infer TView
+          ? TSchema extends {$exact: false}
+            ? _RouteNode<TSchema, TView, TPath, TTransitionState>
+            : _Route<TSchema, TMergedState, TView, TPath, TTransitionState>
+          : never) & {
           [TKey in Exclude<
             Extract<keyof TSchema, string>,
             `$${string}`
