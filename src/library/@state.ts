@@ -1,13 +1,5 @@
-import type {IComputedValue} from 'mobx';
-
-export interface __ViewEntry {
-  id: number;
-  path: string[];
-  stateMap: Map<string, object>;
-  viewComputedValues: IComputedValue<object>[];
-  previous?: __ViewEntry;
-  transition: boolean;
-}
+export type MergeState_<TUpperState, TState> = Omit<TUpperState, keyof TState> &
+  TState;
 
 export function updateStateMapByPart(
   path: string[],

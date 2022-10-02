@@ -1,14 +1,14 @@
-import type {__Route} from './route';
-import type {_RouterClass, __Router} from './router';
-import type {_Transition} from './transition';
+import type {RouteNode__} from './route';
+import type {RouterClass_, Router__} from './router';
+import type {Transition} from './transition';
 
-export type RouteView<TRoute extends __Route> = TRoute['$views'][number];
+export type RouteView<TRoute extends RouteNode__> = TRoute['$views'][number];
 
-export type Transition<TRouter extends __Router> = _Transition<
-  TransitionState<TRouter>
+export type RouterTransition<TRouter extends Router__> = Transition<
+  RouterTransitionState<TRouter>
 >;
 
-export type TransitionState<TRouter extends __Router> =
-  TRouter extends _RouterClass<unknown, unknown, infer TTransitionState>
+export type RouterTransitionState<TRouter extends Router__> =
+  TRouter extends RouterClass_<unknown, unknown, infer TTransitionState>
     ? TTransitionState
     : never;

@@ -1,35 +1,35 @@
 import type {IObservableValue} from 'mobx';
 import {runInAction} from 'mobx';
 
-import type {__ViewEntry} from './@state';
 import {updateStateMapByPart} from './@state';
 import type {RouteOperationSetter} from './route-operation';
+import type {ViewEntry} from './view';
 
-export function _createTransition(
-  targetEntry: __ViewEntry,
-  transitionEntry: __ViewEntry,
+export function createTransition(
+  targetEntry: ViewEntry,
+  transitionEntry: ViewEntry,
   newStatePart: object,
   observableTransitionState: IObservableValue<unknown>,
   setter: RouteOperationSetter,
   abortHandler: TransitionAbortHandler,
-): _Transition<unknown> {
+): Transition<unknown> {
   return Object.setPrototypeOf((transitionState: object) => {
     runInAction(() => {
       observableTransitionState.set(transitionState);
     });
-  }, new _TransitionObject(targetEntry, transitionEntry, newStatePart, setter, abortHandler));
+  }, new TransitionObject(targetEntry, transitionEntry, newStatePart, setter, abortHandler));
 }
 
-export interface _Transition<TTransitionState> extends _TransitionObject {
+export interface Transition<TTransitionState> extends TransitionObject {
   (state: TTransitionState): void;
 }
 
 export type TransitionAbortHandler = () => void;
 
-export class _TransitionObject {
+export class TransitionObject {
   constructor(
-    private targetEntry: __ViewEntry,
-    private transitionEntry: __ViewEntry,
+    private targetEntry: ViewEntry,
+    private transitionEntry: ViewEntry,
     private newStatePart: object,
     private setter: RouteOperationSetter,
     private abortHandler: TransitionAbortHandler,

@@ -1,22 +1,23 @@
 import _ from 'lodash';
 import {computed, makeObservable} from 'mobx';
 
-import type {_RouteOperation} from './route-operation';
-import {_createRouteOperation} from './route-operation';
-import type {__Router} from './router';
-import type {StateType, __Schema} from './schema';
-import type {_Transition} from './transition';
-import type {IView, _ViewBuilder} from './view';
+import type {MergeState_} from './@state';
+import type {RouteOperation_} from './route-operation';
+import type {Router__} from './router';
+import type {Schema__, StateType} from './schema';
+import type {IView, ViewBuilder_} from './view';
 
-export type __Route = _Route<__Schema, object, object, string[], unknown>;
+export type Route__ = Route_<Schema__, object, object, string[], unknown>;
 
-export function _createRoute(
-  router: __Router,
-  schema: __Schema,
+export type RouteNode__ = RouteNode_<Schema__, object, string[], unknown>;
+
+export function createRoute(
+  router: Router__,
+  schema: Schema__,
   path: string[],
   newStateMap: Map<string, object>,
-): _Route<__Schema, object, object, string[], unknown> {
-  const Route = schema.$exact === false ? _RouteNodeObject : _RouteObject;
+): Route_<Schema__, object, object, string[], unknown> {
+  const Route = schema.$exact === false ? RouteNodeObject_ : RouteObject_;
 
   const route: any = (state: object) =>
     new Route(
@@ -31,12 +32,12 @@ export function _createRoute(
   return route;
 }
 
-export class _RouteNodeObject<TView, TPath extends string[], TTransitionState> {
+export class RouteNodeObject_<TView, TPath extends string[], TTransitionState> {
   readonly $key = _.last(this.$path)!;
 
   constructor(
-    readonly $router: __Router,
-    schema: __Schema,
+    readonly $router: Router__,
+    schema: Schema__,
     readonly $path: TPath,
     protected _newStateMap: Map<string, object>,
   ) {
@@ -57,9 +58,9 @@ export class _RouteNodeObject<TView, TPath extends string[], TTransitionState> {
         childSchema = {};
       }
 
-      (this as any)[key] = _createRoute(
+      (this as any)[key] = createRoute(
         $router,
-        childSchema as __Schema,
+        childSchema as Schema__,
         [...$path, key],
         _newStateMap,
       );
@@ -76,54 +77,54 @@ export class _RouteNodeObject<TView, TPath extends string[], TTransitionState> {
   }
 }
 
-export interface _RouteNode<
+export interface RouteNode_<
   TSchema,
   TView,
   TPath extends string[],
   TTransitionState,
-> extends _RouteNodeObject<TView, TPath, TTransitionState> {
+> extends RouteNodeObject_<TView, TPath, TTransitionState> {
   (state: StateType<TSchema>): this;
 }
 
-export class _RouteObject<
+export class RouteObject_<
   TMergedState,
   TView,
   TPath extends string[],
   TTransitionState,
-> extends _RouteNodeObject<TView, TPath, TTransitionState> {
+> extends RouteNodeObject_<TView, TPath, TTransitionState> {
   constructor(
-    $router: __Router,
-    schema: __Schema,
+    $router: Router__,
+    schema: Schema__,
     $path: TPath,
     newStateMap: Map<string, object>,
   ) {
     super($router, schema, $path, newStateMap);
   }
 
-  get $reset(): _RouteOperation<TMergedState, TTransitionState> {
+  get $reset(): RouteOperation_<TMergedState, TTransitionState> {
     return this.$router._reset(this.$path, this._newStateMap);
   }
 
-  get $push(): _RouteOperation<TMergedState, TTransitionState> {
+  get $push(): RouteOperation_<TMergedState, TTransitionState> {
     return this.$router._push(this.$path, this._newStateMap);
   }
 
-  get $replace(): _RouteOperation<TMergedState, TTransitionState> {
+  get $replace(): RouteOperation_<TMergedState, TTransitionState> {
     return this.$router._replace(this.$path, this._newStateMap);
   }
 }
 
-export interface _Route<
+export interface Route_<
   TSchema,
   TMergedState,
   TView,
   TPath extends string[],
   TTransitionState,
-> extends _RouteObject<TMergedState, TView, TPath, TTransitionState> {
+> extends RouteObject_<TMergedState, TView, TPath, TTransitionState> {
   (state: StateType<TSchema>): this;
 }
 
-export type _RouteType<
+export type RouteType_<
   TSchema,
   TViewDefinitionRecord,
   TUpperMergedState,
@@ -134,25 +135,25 @@ export type _RouteType<
   Exclude<keyof TSchema, `$${string}`>
 > extends infer TExtraViewKey extends string
   ? [TExtraViewKey] extends [never]
-    ? _MergeState<
+    ? MergeState_<
         TUpperMergedState,
         StateType<TSchema>
       > extends infer TMergedState
       ? ((
           TViewDefinitionRecord extends {
-            $view: _ViewBuilder<unknown, infer TView>;
+            $view: ViewBuilder_<unknown, infer TView>;
           }
             ? TMergedState & TView & IView<TTransitionState>
             : TMergedState & IView<TTransitionState>
         ) extends infer TView
           ? TSchema extends {$exact: false}
-            ? _RouteNode<TSchema, TView, TPath, TTransitionState>
-            : _Route<TSchema, TMergedState, TView, TPath, TTransitionState>
+            ? RouteNode_<TSchema, TView, TPath, TTransitionState>
+            : Route_<TSchema, TMergedState, TView, TPath, TTransitionState>
           : never) & {
           [TKey in Exclude<
             Extract<keyof TSchema, string>,
             `$${string}`
-          >]: _RouteType<
+          >]: RouteType_<
             TSchema[TKey] extends infer TChildSchema extends object
               ? TChildSchema
               : {},
@@ -167,6 +168,3 @@ export type _RouteType<
       : never
     : {TypeError: `Unexpected view key "${TExtraViewKey}"`}
   : never;
-
-export type _MergeState<TUpperState, TState> = Omit<TUpperState, keyof TState> &
-  TState;

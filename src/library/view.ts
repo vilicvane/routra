@@ -1,34 +1,45 @@
-import type {_MergeState} from './route';
+import type {IComputedValue} from 'mobx';
+
+import type {MergeState_} from './@state';
 import type {StateType} from './schema';
 
-export type __ViewDefinitionRecord = {
-  [TKey in string]: __ViewDefinition;
+export interface ViewEntry {
+  id: number;
+  path: string[];
+  stateMap: Map<string, object>;
+  viewComputedValues: IComputedValue<object>[];
+  previous?: ViewEntry;
+  transition: boolean;
+}
+
+export type ViewDefinitionRecord__ = {
+  [TKey in string]: ViewDefinition__;
 };
 
-export type __RootViewDefinitionRecord = {
+export type RootViewDefinitionRecord__ = {
   $transition?: unknown;
-} & __ViewDefinitionRecord;
+} & ViewDefinitionRecord__;
 
-export type __ViewDefinition = {
-  $view?: __ViewBuilder;
-} & __ViewDefinitionRecord;
+export type ViewDefinition__ = {
+  $view?: ViewBuilder__;
+} & ViewDefinitionRecord__;
 
-export type _ViewBuilder<TMergedState, TView> =
+export type ViewBuilder_<TMergedState, TView> =
   | (new (state: TMergedState) => TView)
   | ((state: TMergedState) => TView);
 
-export type __ViewBuilder = _ViewBuilder<object, object>;
+export type ViewBuilder__ = ViewBuilder_<object, object>;
 
-export type _RootViewDefinitionRecord<TSchemaRecord> = {
+export type RootViewDefinitionRecord_<TSchemaRecord> = {
   $transition?: unknown;
 } & {
-  [TKey in keyof TSchemaRecord]?: _ChildViewDefinitionRecord<
+  [TKey in keyof TSchemaRecord]?: ChildViewDefinitionRecord_<
     TSchemaRecord[TKey] extends infer TSchema extends object ? TSchema : {},
     {}
   >;
 };
 
-type _ChildViewDefinitionRecord<TSchema, TUpperMergedState> = _MergeState<
+type ChildViewDefinitionRecord_<TSchema, TUpperMergedState> = MergeState_<
   TUpperMergedState,
   StateType<TSchema>
 > extends infer TMergedState
@@ -36,14 +47,14 @@ type _ChildViewDefinitionRecord<TSchema, TUpperMergedState> = _MergeState<
       [TKey in Exclude<
         Extract<keyof TSchema, string>,
         `$${string}`
-      >]?: _ChildViewDefinitionRecord<
+      >]?: ChildViewDefinitionRecord_<
         TSchema[TKey] extends infer TChildSchema extends object
           ? TChildSchema
           : {},
         TMergedState
       >;
     } & {
-      $view?: _ViewBuilder<TMergedState, object>;
+      $view?: ViewBuilder_<TMergedState, object>;
     }
   : never;
 
