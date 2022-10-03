@@ -19,7 +19,6 @@
     "mobx": "6"
   },
   "devDependencies": {
-    "mobx": "^6.6.1",
     "tslang": "^0.1.27"
   }
 }
