@@ -1,6 +1,11 @@
 {
   "root": true,
-  "ignorePatterns": ["/packages/routra/src/", "/packages/routra/bld/"],
+  "ignorePatterns": [
+    "/packages/routra/src/",
+    "/packages/routra/bld/",
+    "/packages/routra-react/src/",
+    "/packages/routra-react/bld/"
+  ],
   "extends": ["eslint:recommended"],
   "env": {
     "node": true,

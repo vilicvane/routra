@@ -6,13 +6,14 @@
   "license": "MIT",
   "author": "vilicvane",
   "scripts": {
-    "build": "rimraf packages/routra/bld && tsc --build",
+    "build": "rimraf packages/*/bld && tsc --build",
     "lint": "run-in-every eslint-project --parallel --echo -- eslint --config {configFileName} --no-error-on-unmatched-pattern .",
     "lint-prettier": "prettier --check .",
     "test": "yarn lint-prettier && yarn build && yarn lint"
   },
   "workspaces": [
-    "packages/routra"
+    "packages/routra",
+    "packages/routra-react"
   ],
   "devDependencies": {
     "@mufan/code": "^0.2.15",

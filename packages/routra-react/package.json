@@ -1,0 +1,16 @@
+{
+  "name": "routra-react",
+  "version": "0.0.0",
+  "repository": "https://github.com/vilic/routra.git",
+  "license": "MIT",
+  "author": "vilicvane",
+  "exports": {
+    "types": "./bld/library/index.d.ts",
+    "source": "./src/library/index.ts",
+    "require": "./bld/library/index.js"
+  },
+  "dependencies": {
+    "routra": "*",
+    "tslib": "^2.4.0"
+  }
+}
