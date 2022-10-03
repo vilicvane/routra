@@ -14,7 +14,8 @@
   "eslint.workingDirectories": [
     ".",
     "packages/routra/src/library",
-    "packages/routra/src/test"
+    "packages/routra/src/test",
+    "packages/routra-react/src/library"
   ],
   "eslint.validate": [
     "javascript",

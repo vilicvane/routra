@@ -5,6 +5,9 @@
     },
     {
       "path": "packages/routra/src/test"
+    },
+    {
+      "path": "packages/routra-react/src/library"
     }
   ],
   "files": []

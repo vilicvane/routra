@@ -21,6 +21,21 @@ module.exports = {
           },
         ],
       },
+      {
+        name: 'routra-react',
+        tsProjects: [
+          {
+            name: 'library',
+            exportSourceAs: 'source',
+            references: [
+              {
+                package: 'routra',
+                project: 'library',
+              },
+            ],
+          },
+        ],
+      },
     ],
   },
 };
