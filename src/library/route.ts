@@ -1,11 +1,10 @@
 import _ from 'lodash';
 import {computed, makeObservable} from 'mobx';
 
-import type {MergeState_} from './@state';
 import type {RouteOperation_} from './route-operation';
 import type {Router__} from './router';
 import type {Schema__, StateType} from './schema';
-import type {IView, ViewBuilder_} from './view';
+import type {IView, MergeState_, ViewBuilder_} from './view';
 
 export type Route__ = Route_<Schema__, object, object, string[], unknown>;
 

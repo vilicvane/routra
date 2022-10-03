@@ -1,6 +1,5 @@
 import type {IComputedValue} from 'mobx';
 
-import type {MergeState_} from './@state';
 import type {StateType} from './schema';
 
 export interface ViewEntry {
@@ -57,6 +56,9 @@ type ChildViewDefinitionRecord_<TSchema, TUpperMergedState> = MergeState_<
       $view?: ViewBuilder_<TMergedState, object>;
     }
   : never;
+
+export type MergeState_<TUpperState, TState> = Omit<TUpperState, keyof TState> &
+  TState;
 
 export interface IView<TTransitionState> {
   $id: number;

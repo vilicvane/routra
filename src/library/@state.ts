@@ -1,6 +1,3 @@
-export type MergeState_<TUpperState, TState> = Omit<TUpperState, keyof TState> &
-  TState;
-
 export function updateStateMapByPart(
   path: string[],
   observableStateMap: Map<string, object>,
