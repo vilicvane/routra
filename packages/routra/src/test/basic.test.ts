@@ -35,8 +35,8 @@ test('simple case 1', () => {
   router.home.$reset();
 
   expect(router.home.$views).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "$exact": true,
         "$id": 1,
         "$transition": undefined,
@@ -52,8 +52,8 @@ test('simple case 1', () => {
   router.home.hello.$push({user: '123'});
 
   expect(router.home.$views).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "$exact": false,
         "$id": 2,
         "$transition": undefined,
@@ -63,8 +63,8 @@ test('simple case 1', () => {
   `);
 
   expect(router.home.hello.$views).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "$exact": true,
         "$id": 2,
         "$transition": undefined,
@@ -127,8 +127,8 @@ test('push pop with shared states', () => {
   router.home.hello.$push({user: 'abc'});
 
   expect(router.home.$views).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "$exact": false,
         "$id": 4,
         "$transition": undefined,
@@ -138,8 +138,8 @@ test('push pop with shared states', () => {
   `);
 
   expect(router.home.hello.$views).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "$exact": true,
         "$id": 4,
         "$transition": undefined,
@@ -152,8 +152,8 @@ test('push pop with shared states', () => {
   router.$back();
 
   expect(router.home.$views).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "$exact": true,
         "$id": 3,
         "$transition": undefined,
@@ -213,8 +213,8 @@ test('transition', () => {
   ]);
 
   expect(router.home.$views).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "$exact": true,
         "$id": 5,
         "$transition": undefined,
@@ -223,11 +223,11 @@ test('transition', () => {
   `);
 
   expect(router.inbox.$views).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "$exact": false,
         "$id": 6,
-        "$transition": Object {
+        "$transition": {
           "progress": 0.8,
         },
       },
@@ -235,11 +235,11 @@ test('transition', () => {
   `);
 
   expect(router.inbox.message.$views).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "$exact": true,
         "$id": 6,
-        "$transition": Object {
+        "$transition": {
           "progress": 0.8,
         },
         "id": "abc",
@@ -252,8 +252,8 @@ test('transition', () => {
   expect(router.home.$views).toEqual([]);
 
   expect(router.inbox.$views).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "$exact": false,
         "$id": 6,
         "$transition": undefined,
@@ -262,8 +262,8 @@ test('transition', () => {
   `);
 
   expect(router.inbox.message.$views).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "$exact": true,
         "$id": 6,
         "$transition": undefined,

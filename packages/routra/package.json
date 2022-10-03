@@ -1,0 +1,25 @@
+{
+  "name": "routra",
+  "version": "0.1.0",
+  "description": "Routra",
+  "repository": "https://github.com/vilic/routra.git",
+  "license": "MIT",
+  "author": "vilicvane",
+  "exports": {
+    "types": "./bld/library/index.d.ts",
+    "source": "./src/library/index.ts",
+    "require": "./bld/library/index.js"
+  },
+  "dependencies": {
+    "@types/lodash": "^4.14.182",
+    "lodash": "^4.17.21",
+    "tslib": "^2.4.0"
+  },
+  "peerDependencies": {
+    "mobx": "6"
+  },
+  "devDependencies": {
+    "mobx": "^6.6.1",
+    "tslang": "^0.1.27"
+  }
+}
