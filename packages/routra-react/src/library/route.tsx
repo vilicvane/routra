@@ -4,6 +4,10 @@ import type {ComponentType, ReactNode} from 'react';
 import React, {Component, createContext} from 'react';
 import type {IView, RouteNode__, RouteView} from 'routra';
 
+const STABLE_OPTION_DEFAULT = false;
+const SINGLE_OPTION_DEFAULT = false;
+const LEAVING_OPTION_DEFAULT = false;
+
 export interface RouteContext {
   route: RouteNode__;
   view: IView<unknown>;
@@ -49,9 +53,9 @@ export class Route<TRoute extends RouteNode__> extends Component<
   private get viewEntries(): RouteViewEntry[] {
     const {
       match,
-      stable = false,
-      single = false,
-      leaving: leavingEnabled = false,
+      stable = STABLE_OPTION_DEFAULT,
+      single = SINGLE_OPTION_DEFAULT,
+      leaving: leavingEnabled = LEAVING_OPTION_DEFAULT,
     } = this.props;
 
     void this.tick;
@@ -75,12 +79,14 @@ export class Route<TRoute extends RouteNode__> extends Component<
       }
     }
 
-    const pendingActiveViewSet = new Set(matchedViews);
+    const pendingIteratingMatchedViewSet = new Set(matchedViews);
 
     for (const [view, entry] of viewToEntryMap) {
-      const active = pendingActiveViewSet.delete(view);
+      // The view is active if found in the matched views.
+      const active = pendingIteratingMatchedViewSet.delete(view);
 
       if (active) {
+        // No update needed for this view entry.
         continue;
       }
 
@@ -102,7 +108,8 @@ export class Route<TRoute extends RouteNode__> extends Component<
       }
     }
 
-    for (const view of pendingActiveViewSet) {
+    for (const view of pendingIteratingMatchedViewSet) {
+      // Add view to `viewToEntryMap` if not in it yet.
       viewToEntryMap.set(view, {
         view,
         leaving: false,
@@ -113,7 +120,12 @@ export class Route<TRoute extends RouteNode__> extends Component<
   }
 
   override render(): ReactNode {
-    const {match, exact, component: Component} = this.props;
+    const {
+      match,
+      single = SINGLE_OPTION_DEFAULT,
+      exact,
+      component: Component,
+    } = this.props;
 
     return this.viewEntries.map(({view, leaving}) => {
       if (!(exact === undefined || exact === view.$exact)) {
@@ -121,7 +133,10 @@ export class Route<TRoute extends RouteNode__> extends Component<
       }
 
       return (
-        <RouteContext.Provider key={view.$id} value={{route: match, view}}>
+        <RouteContext.Provider
+          key={single ? undefined : view.$id}
+          value={{route: match, view}}
+        >
           <Component route={match} view={view} leaving={leaving} />
         </RouteContext.Provider>
       );
