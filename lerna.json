@@ -3,5 +3,5 @@
   "registry": "https://registry.npmjs.org",
   "useNx": true,
   "useWorkspaces": true,
-  "version": "0.1.0"
+  "version": "0.1.1"
 }
