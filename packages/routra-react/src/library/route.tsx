@@ -90,7 +90,7 @@ export class Route<TRoute extends RouteNode__> extends Component<
         continue;
       }
 
-      if (leavingEnabled) {
+      if (leavingEnabled && !single) {
         viewToEntryMap.set(view, {
           ...entry,
           leaving: {
@@ -134,7 +134,7 @@ export class Route<TRoute extends RouteNode__> extends Component<
 
       return (
         <RouteContext.Provider
-          key={single ? undefined : view.$id}
+          key={single ? 'single' : view.$id}
           value={{route: match, view}}
         >
           <Component route={match} view={view} leaving={leaving} />
