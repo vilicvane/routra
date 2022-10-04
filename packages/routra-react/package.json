@@ -1,6 +1,6 @@
 {
   "name": "routra-react",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "repository": "https://github.com/vilic/routra.git",
   "license": "MIT",
   "author": "vilicvane",
@@ -10,7 +10,7 @@
     "require": "./bld/library/index.js"
   },
   "dependencies": {
-    "routra": "*",
+    "routra": "^0.1.2",
     "tslib": "^2.4.0"
   },
   "peerDependencies": {
