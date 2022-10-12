@@ -2,7 +2,7 @@ import {computed, makeObservable, observable, runInAction} from 'mobx';
 import {observer} from 'mobx-react';
 import type {ComponentType, ReactNode} from 'react';
 import React, {Component, createContext} from 'react';
-import type {IView, RouteNode__, RouteView} from 'routra';
+import type {IView, IView__, RouteNode__, RouteView} from 'routra';
 
 const STABLE_OPTION_DEFAULT = false;
 const SINGLE_OPTION_DEFAULT = false;
@@ -26,7 +26,7 @@ export interface RouteComponentProps<TRoute extends RouteNode__> {
 }
 
 export interface RouteProps<TRoute extends RouteNode__> {
-  match: TRoute;
+  match: TRoute | TRoute[];
   exact?: boolean;
   stable?: boolean;
   single?: boolean;
@@ -58,32 +58,40 @@ export class Route<TRoute extends RouteNode__> extends Component<
       leaving: leavingEnabled = LEAVING_OPTION_DEFAULT,
     } = this.props;
 
+    // Reference tick observable.
     void this.tick;
 
     const viewToEntryMap = this._viewToEntryMap;
 
-    let matchedViews = match.$views;
+    const matches = Array.isArray(match) ? match : [match];
+
+    let matchedViewAndRouteTuples = matches.flatMap(match =>
+      match.$views.map((view): [IView__, RouteNode__] => [view, match]),
+    );
 
     if (stable) {
-      matchedViews = matchedViews.filter(
-        view => view.$transition === undefined,
+      matchedViewAndRouteTuples = matchedViewAndRouteTuples.filter(
+        ([view]) => view.$transition === undefined,
       );
     }
 
     if (single) {
-      if (matchedViews.length > 1) {
-        matchedViews = [
-          matchedViews.find(view => view.$transition === undefined) ??
-            matchedViews[0],
+      if (matchedViewAndRouteTuples.length > 1) {
+        matchedViewAndRouteTuples = [
+          matchedViewAndRouteTuples.find(
+            ([view]) => view.$transition === undefined,
+          ) ?? matchedViewAndRouteTuples[0],
         ];
       }
     }
 
-    const pendingIteratingMatchedViewSet = new Set(matchedViews);
+    const pendingIteratingMatchedViewToRouteMap = new Map(
+      matchedViewAndRouteTuples,
+    );
 
     for (const [view, entry] of viewToEntryMap) {
       // The view is active if found in the matched views.
-      const active = pendingIteratingMatchedViewSet.delete(view);
+      const active = pendingIteratingMatchedViewToRouteMap.delete(view);
 
       if (active) {
         // No update needed for this view entry.
@@ -108,10 +116,11 @@ export class Route<TRoute extends RouteNode__> extends Component<
       }
     }
 
-    for (const view of pendingIteratingMatchedViewSet) {
+    for (const [view, route] of pendingIteratingMatchedViewToRouteMap) {
       // Add view to `viewToEntryMap` if not in it yet.
       viewToEntryMap.set(view, {
         view,
+        route,
         leaving: false,
       });
     }
@@ -121,13 +130,12 @@ export class Route<TRoute extends RouteNode__> extends Component<
 
   override render(): ReactNode {
     const {
-      match,
       single = SINGLE_OPTION_DEFAULT,
       exact,
       component: Component,
     } = this.props;
 
-    return this.viewEntries.map(({view, leaving}) => {
+    return this.viewEntries.map(({view, route, leaving}) => {
       if (!(exact === undefined || exact === view.$exact)) {
         return null;
       }
@@ -135,9 +143,9 @@ export class Route<TRoute extends RouteNode__> extends Component<
       return (
         <RouteContext.Provider
           key={single ? 'single' : view.$id}
-          value={{route: match, view}}
+          value={{route, view}}
         >
-          <Component route={match} view={view} leaving={leaving} />
+          <Component route={route as TRoute} view={view} leaving={leaving} />
         </RouteContext.Provider>
       );
     });
@@ -145,6 +153,7 @@ export class Route<TRoute extends RouteNode__> extends Component<
 }
 
 interface RouteViewEntry {
-  view: IView<unknown>;
+  view: IView__;
+  route: RouteNode__;
   leaving: RouteComponentLeaving | false;
 }

@@ -60,6 +60,8 @@ type ChildViewDefinitionRecord_<TSchema, TUpperMergedState> = MergeState_<
 export type MergeState_<TUpperState, TState> = Omit<TUpperState, keyof TState> &
   TState;
 
+export type IView__ = IView<unknown>;
+
 export interface IView<TTransitionState> {
   $id: number;
   $exact: boolean;
