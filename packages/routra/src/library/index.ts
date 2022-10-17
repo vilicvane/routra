@@ -5,3 +5,4 @@ export * from './view';
 export * from './route-operation';
 export * from './transition';
 export * from './utils';
+export * from './router-builder';

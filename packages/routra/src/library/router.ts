@@ -11,18 +11,17 @@ import type {
   RouteOperation_,
 } from './route-operation';
 import {createRouteBack, createRouteOperation} from './route-operation';
-import type {SchemaRecord, SchemaRecord__} from './schema';
+import type {SchemaRecord__} from './schema';
 import type {Transition} from './transition';
 import {createTransition} from './transition';
 import type {
   ClassViewBuilder__,
   FunctionViewBuilder__,
-  RootViewDefinitionRecord_,
   RootViewDefinitionRecord__,
   ViewEntry,
 } from './view';
 
-export class RouterClass_<
+export class Router_<
   TSchemaRecord,
   TRootViewDefinitionRecord,
   TTransitionState,
@@ -210,7 +209,7 @@ export class RouterClass_<
         }
       | undefined,
   ): ViewEntry {
-    const id = transition?.id ?? ++RouterClass_.lastViewEntryId;
+    const id = transition?.id ?? ++Router_.lastViewEntryId;
 
     const lastKey = _.last(path)!;
 
@@ -355,43 +354,15 @@ export class RouterClass_<
   static lastViewEntryId = 0;
 }
 
-export interface RouterConstructor {
-  new <
-    TSchemaRecord extends SchemaRecord,
-    TRootViewDefinitionRecord extends
-      | RootViewDefinitionRecord_<TSchemaRecord>
-      // A workaround for TRootViewDefinitionRecord being accurately inferred.
-      // Without it, TypeScript sometimes infers TRootViewDefinitionRecord as
-      // RootViewDefinitionRecord_<TSchemaRecord> (the constraint) instead of
-      // the actual type.
-      | {},
-  >(
-    schemas: TSchemaRecord,
-    views?: TRootViewDefinitionRecord,
-  ): RouterType_<TSchemaRecord, TRootViewDefinitionRecord>;
-  lastViewEntryId: number;
-}
+export type Router__ = Router_<SchemaRecord__, object, unknown>;
 
-export const Router = RouterClass_ as RouterConstructor;
-
-export type Router<
-  TSchemaRecord extends SchemaRecord__,
-  TRootViewDefinitionRecord extends RootViewDefinitionRecord_<TSchemaRecord>,
-> = RouterType_<TSchemaRecord, TRootViewDefinitionRecord>;
-
-export type Router__ = RouterClass_<SchemaRecord__, object, unknown>;
-
-type RouterType_<TSchemaRecord, TRootViewDefinitionRecord> = Exclude<
+export type RouterType_<TSchemaRecord, TRootViewDefinitionRecord> = Exclude<
   Exclude<keyof TRootViewDefinitionRecord, `$${string}`>,
   keyof TSchemaRecord
 > extends infer TExtraViewKey extends string
   ? [TExtraViewKey] extends [never]
     ? TransitionState_<TRootViewDefinitionRecord> extends infer TTransitionState
-      ? RouterClass_<
-          TSchemaRecord,
-          TRootViewDefinitionRecord,
-          TTransitionState
-        > & {
+      ? Router_<TSchemaRecord, TRootViewDefinitionRecord, TTransitionState> & {
           [TKey in Extract<keyof TSchemaRecord, string>]: RouteType_<
             TSchemaRecord[TKey] extends infer TSchema extends object
               ? TSchema

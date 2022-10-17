@@ -1,6 +1,6 @@
 import type {IComputedValue} from 'mobx';
 
-import type {StateType} from './schema';
+import type {SchemaRecord__, StateType} from './schema';
 import type {OverrideObject_} from './utils';
 
 export interface ViewEntry {
@@ -12,13 +12,9 @@ export interface ViewEntry {
   transition: boolean;
 }
 
-export type ViewDefinitionRecord__ = {
-  [TKey in string]: ViewDefinition__;
-};
-
-export type RootViewDefinitionRecord__ = {
-  $transition?: unknown;
-} & ViewDefinitionRecord__;
+export interface ViewDefinitionRecord__ {
+  [TKey: string]: ViewDefinition__;
+}
 
 export type ViewDefinition__ = {
   $view?: ViewBuilder__ | ViewBuilder__[];
@@ -41,6 +37,9 @@ export type ViewBuilder_<TMergedState, TView> =
   | ClassViewBuilder_<TMergedState, TView>;
 
 export type ViewBuilder__ = ViewBuilder_<object, object>;
+
+export type RootViewDefinitionRecord__ =
+  RootViewDefinitionRecord_<SchemaRecord__>;
 
 export type RootViewDefinitionRecord_<TSchemaRecord> = {
   $transition?: unknown;

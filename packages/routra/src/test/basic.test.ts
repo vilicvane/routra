@@ -1,25 +1,24 @@
 import {reaction, runInAction} from 'mobx';
 import type {AssertTrue, IsEqual} from 'tslang';
 
-import {RouteNodeObject_, RouteObject_, Router} from '../library';
+import {RouteNodeObject_, RouteObject_, routra} from '../library';
 
 test('simple case 1', () => {
-  const router = new Router(
-    {
-      home: {
-        $state: {
-          user: 'vilicvane',
-        },
-        hello: {
-          $state: {
-            name: '',
-          },
-        },
-        world: true,
+  const router = routra({
+    home: {
+      $state: {
+        user: 'vilicvane',
       },
-      about: true,
+      hello: {
+        $state: {
+          name: '',
+        },
+      },
+      world: true,
     },
-    {
+    about: true,
+  })
+    .$views({
       home: {
         hello: {
           $view(state) {
@@ -29,8 +28,8 @@ test('simple case 1', () => {
           },
         },
       },
-    },
-  );
+    })
+    .$create();
 
   router.home.$reset();
 
@@ -109,16 +108,15 @@ test('simple case 1', () => {
 });
 
 test('multiple view builders', () => {
-  const router = new Router(
-    {
-      home: {
-        $state: {
-          a: 1,
-          b: 2,
-        },
+  const router = routra({
+    home: {
+      $state: {
+        a: 1,
+        b: 2,
       },
     },
-    {
+  })
+    .$views({
       $transition: 0,
       home: {
         $view: [
@@ -136,8 +134,8 @@ test('multiple view builders', () => {
           },
         ],
       },
-    },
-  );
+    })
+    .$create();
 
   router.home.$reset();
 
@@ -172,7 +170,7 @@ test('multiple view builders', () => {
 });
 
 test('push pop with shared states', () => {
-  const router = new Router({
+  const router = routra({
     home: {
       $state: {
         user: 'admin',
@@ -183,7 +181,7 @@ test('push pop with shared states', () => {
         },
       },
     },
-  });
+  }).$create();
 
   router.home.$reset();
 
@@ -229,25 +227,24 @@ test('push pop with shared states', () => {
 });
 
 test('transition', () => {
-  const router = new Router(
-    {
-      inbox: {
-        message: {
-          $state: undefined! as {
-            id: string;
-          },
+  const router = routra({
+    inbox: {
+      message: {
+        $state: undefined! as {
+          id: string;
         },
       },
-      home: true,
     },
-    {
+    home: true,
+  })
+    .$views({
       $transition: undefined as
         | {
             progress: number;
           }
         | undefined,
-    },
-  );
+    })
+    .$create();
 
   router.home.$reset();
 
@@ -348,31 +345,29 @@ test('transition', () => {
 });
 
 test('unexpected view key', () => {
-  const router_1 = new Router(
-    {
-      home: {
-        hello: true,
-        world: true,
-      },
-      about: true,
+  const router_1 = routra({
+    home: {
+      hello: true,
+      world: true,
     },
-    {
+    about: true,
+  })
+    .$views({
       home: {
         hello: {},
       },
       foo: true,
-    },
-  );
+    })
+    .$create();
 
-  const router_2 = new Router(
-    {
-      home: {
-        hello: true,
-        world: true,
-      },
-      about: true,
+  const router_2 = routra({
+    home: {
+      hello: true,
+      world: true,
     },
-    {
+    about: true,
+  })
+    .$views({
       home: {
         hello: {
           world: {
@@ -380,8 +375,8 @@ test('unexpected view key', () => {
           },
         },
       },
-    },
-  );
+    })
+    .$create();
 
   type _ =
     | AssertTrue<
@@ -396,14 +391,14 @@ test('unexpected view key', () => {
 });
 
 test('$exact false support', () => {
-  const router_1 = new Router({
+  const router_1 = routra({
     home: {
       $exact: false,
       hello: true,
       world: true,
     },
     about: true,
-  });
+  }).$create();
 
   expect(router_1.home instanceof RouteNodeObject_).toBe(true);
   expect(router_1.home instanceof RouteObject_).toBe(false);
