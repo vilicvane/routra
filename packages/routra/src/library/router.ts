@@ -267,13 +267,17 @@ export class Router_<
         })
         .reverse();
 
+      const builtViewComputedValues = viewBuilders.map(viewBuilder =>
+        computed(() => viewBuilder(mergedObservableState)),
+      );
+
       const mergedViewComputedValue = computed(() => {
-        if (viewBuilders.length === 0) {
+        if (builtViewComputedValues.length === 0) {
           return mergedObservableState;
         }
 
-        const views = viewBuilders.map(viewBuilder =>
-          viewBuilder(mergedObservableState),
+        const views = builtViewComputedValues.map(computedValue =>
+          computedValue.get(),
         );
 
         return createMergedObjectProxy([
