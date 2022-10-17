@@ -1,7 +1,7 @@
 import type {IComputedValue} from 'mobx';
 
-import type {OverrideObject_} from './@utils';
 import type {StateType} from './schema';
+import type {OverrideObject_} from './utils';
 
 export interface ViewEntry {
   id: number;

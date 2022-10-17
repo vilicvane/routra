@@ -12,3 +12,19 @@ export type RouterTransitionState<TRouter extends Router__> =
   TRouter extends RouterClass_<unknown, unknown, infer TTransitionState>
     ? TTransitionState
     : never;
+
+export type OverrideObject_<TObject, TOverride> = Omit<
+  TObject,
+  keyof TOverride
+> &
+  TOverride;
+
+export type MultiOverrideObject_<TObject, TOverrides> = TOverrides extends [
+  infer TOverride,
+  ...infer TRestOverrides,
+]
+  ? MultiOverrideObject_<
+      Omit<TObject, keyof TOverride> & TOverride,
+      TRestOverrides
+    >
+  : TObject;

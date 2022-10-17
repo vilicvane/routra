@@ -1,10 +1,10 @@
 import _ from 'lodash';
 import {computed, makeObservable} from 'mobx';
 
-import type {MultiOverrideObject_, OverrideObject_} from './@utils';
 import type {RouteOperation_} from './route-operation';
 import type {Router__} from './router';
 import type {Schema__, StateType} from './schema';
+import type {MultiOverrideObject_, OverrideObject_} from './utils';
 import type {IView, ViewBuilder_, ViewBuilder__} from './view';
 
 export type Route__ = Route_<Schema__, object, object, string[], unknown>;
