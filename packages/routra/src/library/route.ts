@@ -5,11 +5,11 @@ import type {RouteOperation_} from './route-operation';
 import type {Router__} from './router';
 import type {Schema__, StateType} from './schema';
 import type {MultiOverrideObject_, OverrideObject_} from './utils';
-import type {IView, ViewBuilder_, ViewBuilder__} from './view';
+import type {IView, IView__, ViewBuilder_, ViewBuilder__} from './view';
 
 export type Route__ = Route_<Schema__, object, object, string[], unknown>;
 
-export type RouteNode__ = RouteNode_<Schema__, object, string[], unknown>;
+export type RouteNode__ = RouteNode_<Schema__, object, string[]>;
 
 export function createRoute(
   router: Router__,
@@ -32,7 +32,7 @@ export function createRoute(
   return route;
 }
 
-export class RouteNodeObject_<TView, TPath extends string[], TTransitionState> {
+export class RouteNodeObject_<TView, TPath extends string[]> {
   readonly $key = _.last(this.$path)!;
 
   constructor(
@@ -68,7 +68,7 @@ export class RouteNodeObject_<TView, TPath extends string[], TTransitionState> {
   }
 
   @computed
-  get $views(): (TView & IView<TTransitionState>)[] {
+  get $views(): (TView & IView__)[] {
     const path = this.$path;
 
     return this.$router
@@ -77,12 +77,8 @@ export class RouteNodeObject_<TView, TPath extends string[], TTransitionState> {
   }
 }
 
-export interface RouteNode_<
-  TSchema,
-  TView,
-  TPath extends string[],
-  TTransitionState,
-> extends RouteNodeObject_<TView, TPath, TTransitionState> {
+export interface RouteNode_<TSchema, TView, TPath extends string[]>
+  extends RouteNodeObject_<TView, TPath> {
   (state: StateType<TSchema>): this;
 }
 
@@ -91,7 +87,7 @@ export class RouteObject_<
   TView,
   TPath extends string[],
   TTransitionState,
-> extends RouteNodeObject_<TView, TPath, TTransitionState> {
+> extends RouteNodeObject_<TView, TPath> {
   constructor(
     $router: Router__,
     schema: Schema__,
@@ -167,7 +163,7 @@ export type RouteType_<
             : OverrideObject_<TMergedState, IView<TTransitionState>>
         ) extends infer TView
           ? TSchema extends {$exact: false}
-            ? RouteNode_<TSchema, TView, TPath, TTransitionState>
+            ? RouteNode_<TSchema, TView, TPath>
             : Route_<TSchema, TMergedState, TView, TPath, TTransitionState>
           : never) & {
           [TKey in Exclude<

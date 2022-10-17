@@ -358,7 +358,13 @@ export class RouterClass_<
 export interface RouterConstructor {
   new <
     TSchemaRecord extends SchemaRecord,
-    TRootViewDefinitionRecord extends RootViewDefinitionRecord_<TSchemaRecord>,
+    TRootViewDefinitionRecord extends
+      | RootViewDefinitionRecord_<TSchemaRecord>
+      // A workaround for TRootViewDefinitionRecord being accurately inferred.
+      // Without it, TypeScript sometimes infers TRootViewDefinitionRecord as
+      // RootViewDefinitionRecord_<TSchemaRecord> (the constraint) instead of
+      // the actual type.
+      | {},
   >(
     schemas: TSchemaRecord,
     views?: TRootViewDefinitionRecord,
@@ -375,31 +381,30 @@ export type Router<
 
 export type Router__ = RouterClass_<SchemaRecord__, object, unknown>;
 
-type RouterType_<TSchemaRecord, TRootViewDefinitionRecord> = [
-  Exclude<
-    Exclude<keyof TRootViewDefinitionRecord, `$${string}`>,
-    keyof TSchemaRecord
-  >,
-  TransitionState_<TRootViewDefinitionRecord>,
-] extends [infer TExtraViewKey extends string, infer TTransitionState]
+type RouterType_<TSchemaRecord, TRootViewDefinitionRecord> = Exclude<
+  Exclude<keyof TRootViewDefinitionRecord, `$${string}`>,
+  keyof TSchemaRecord
+> extends infer TExtraViewKey extends string
   ? [TExtraViewKey] extends [never]
-    ? RouterClass_<
-        TSchemaRecord,
-        TRootViewDefinitionRecord,
-        TTransitionState
-      > & {
-        [TKey in Extract<keyof TSchemaRecord, string>]: RouteType_<
-          TSchemaRecord[TKey] extends infer TSchema extends object
-            ? TSchema
-            : {},
-          TRootViewDefinitionRecord extends Record<TKey, object>
-            ? TRootViewDefinitionRecord[TKey]
-            : {},
-          {},
-          [TKey],
+    ? TransitionState_<TRootViewDefinitionRecord> extends infer TTransitionState
+      ? RouterClass_<
+          TSchemaRecord,
+          TRootViewDefinitionRecord,
           TTransitionState
-        >;
-      }
+        > & {
+          [TKey in Extract<keyof TSchemaRecord, string>]: RouteType_<
+            TSchemaRecord[TKey] extends infer TSchema extends object
+              ? TSchema
+              : {},
+            TRootViewDefinitionRecord extends Record<TKey, object>
+              ? TRootViewDefinitionRecord[TKey]
+              : {},
+            {},
+            [TKey],
+            TTransitionState
+          >;
+        }
+      : never
     : {TypeError: `Unexpected view key "${TExtraViewKey}"`}
   : never;
 

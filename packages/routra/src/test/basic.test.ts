@@ -119,6 +119,7 @@ test('multiple view builders', () => {
       },
     },
     {
+      $transition: 0,
       home: {
         $view: [
           _state => {
@@ -160,7 +161,7 @@ test('multiple view builders', () => {
       {
         $id: number;
         $exact: boolean;
-        $transition: undefined;
+        $transition: number | undefined;
         a: number;
         b: string;
         c: number;
@@ -333,6 +334,17 @@ test('transition', () => {
       },
     ]
   `);
+
+  type _ = AssertTrue<
+    IsEqual<
+      typeof router.home.$views,
+      {
+        $id: number;
+        $exact: boolean;
+        $transition: {progress: number} | undefined;
+      }[]
+    >
+  >;
 });
 
 test('unexpected view key', () => {
