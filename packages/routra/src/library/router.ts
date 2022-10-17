@@ -15,6 +15,8 @@ import type {SchemaRecord, SchemaRecord__} from './schema';
 import type {Transition} from './transition';
 import {createTransition} from './transition';
 import type {
+  ClassViewBuilder__,
+  FunctionViewBuilder__,
   RootViewDefinitionRecord_,
   RootViewDefinitionRecord__,
   ViewEntry,
@@ -245,26 +247,40 @@ export class RouterClass_<
 
       const views = upperViews[key] ?? {};
 
-      let viewBuilder = views.$view;
+      const viewBuilderOption = views.$view ?? [];
 
-      if (
-        viewBuilder &&
-        // class has prototype writable false
-        Object.getOwnPropertyDescriptor(viewBuilder as any, 'prototype')
-          ?.writable === false
-      ) {
-        const ViewConstructor = viewBuilder as any;
-        viewBuilder = state => new ViewConstructor(state);
-      }
+      const viewBuilders = (
+        Array.isArray(viewBuilderOption)
+          ? viewBuilderOption
+          : [viewBuilderOption]
+      )
+        .map((viewBuilder): FunctionViewBuilder__ => {
+          if (
+            // class has prototype writable false
+            Object.getOwnPropertyDescriptor(viewBuilder as any, 'prototype')
+              ?.writable === false
+          ) {
+            const ViewConstructor = viewBuilder as ClassViewBuilder__;
+            return state => new ViewConstructor(state);
+          } else {
+            return viewBuilder as FunctionViewBuilder__;
+          }
+        })
+        .reverse();
 
       const mergedViewComputedValue = computed(() => {
-        if (!viewBuilder) {
+        if (viewBuilders.length === 0) {
           return mergedObservableState;
         }
 
-        const view = (viewBuilder as any)(mergedObservableState);
+        const views = viewBuilders.map(viewBuilder =>
+          viewBuilder(mergedObservableState),
+        );
 
-        return createMergedObjectProxy([view, ...orderedObservableStatesToKey]);
+        return createMergedObjectProxy([
+          ...views,
+          ...orderedObservableStatesToKey,
+        ]);
       });
 
       viewComputedValues.push(mergedViewComputedValue);

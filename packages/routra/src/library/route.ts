@@ -1,10 +1,11 @@
 import _ from 'lodash';
 import {computed, makeObservable} from 'mobx';
 
+import type {MultiOverrideObject_, OverrideObject_} from './@utils';
 import type {RouteOperation_} from './route-operation';
 import type {Router__} from './router';
 import type {Schema__, StateType} from './schema';
-import type {IView, MergeState_, ViewBuilder_} from './view';
+import type {IView, ViewBuilder_, ViewBuilder__} from './view';
 
 export type Route__ = Route_<Schema__, object, object, string[], unknown>;
 
@@ -134,7 +135,7 @@ export type RouteType_<
   Exclude<keyof TSchema, `$${string}`>
 > extends infer TExtraViewKey extends string
   ? [TExtraViewKey] extends [never]
-    ? MergeState_<
+    ? OverrideObject_<
         TUpperMergedState,
         StateType<TSchema>
       > extends infer TMergedState
@@ -142,8 +143,28 @@ export type RouteType_<
           TViewDefinitionRecord extends {
             $view: ViewBuilder_<unknown, infer TView>;
           }
-            ? TMergedState & TView & IView<TTransitionState>
-            : TMergedState & IView<TTransitionState>
+            ? MultiOverrideObject_<
+                TMergedState,
+                [IView<TTransitionState>, TView]
+              >
+            : TViewDefinitionRecord extends {
+                $view: infer TViewBuilders extends ViewBuilder__[];
+              }
+            ? MultiOverrideObject_<
+                TMergedState,
+                [
+                  IView<TTransitionState>,
+                  ...{
+                    [TIndex in keyof TViewBuilders]: TViewBuilders[TIndex] extends ViewBuilder_<
+                      unknown,
+                      infer TView
+                    >
+                      ? TView
+                      : never;
+                  },
+                ]
+              >
+            : OverrideObject_<TMergedState, IView<TTransitionState>>
         ) extends infer TView
           ? TSchema extends {$exact: false}
             ? RouteNode_<TSchema, TView, TPath, TTransitionState>

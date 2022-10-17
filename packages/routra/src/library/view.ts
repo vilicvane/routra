@@ -1,5 +1,6 @@
 import type {IComputedValue} from 'mobx';
 
+import type {OverrideObject_} from './@utils';
 import type {StateType} from './schema';
 
 export interface ViewEntry {
@@ -20,12 +21,24 @@ export type RootViewDefinitionRecord__ = {
 } & ViewDefinitionRecord__;
 
 export type ViewDefinition__ = {
-  $view?: ViewBuilder__;
+  $view?: ViewBuilder__ | ViewBuilder__[];
 } & ViewDefinitionRecord__;
 
+export type FunctionViewBuilder_<TMergedState, TView> = (
+  state: TMergedState,
+) => TView;
+
+export type FunctionViewBuilder__ = FunctionViewBuilder_<object, object>;
+
+export type ClassViewBuilder_<TMergedState, TView> = new (
+  state: TMergedState,
+) => TView;
+
+export type ClassViewBuilder__ = ClassViewBuilder_<object, object>;
+
 export type ViewBuilder_<TMergedState, TView> =
-  | (new (state: TMergedState) => TView)
-  | ((state: TMergedState) => TView);
+  | FunctionViewBuilder_<TMergedState, TView>
+  | ClassViewBuilder_<TMergedState, TView>;
 
 export type ViewBuilder__ = ViewBuilder_<object, object>;
 
@@ -38,7 +51,7 @@ export type RootViewDefinitionRecord_<TSchemaRecord> = {
   >;
 };
 
-type ChildViewDefinitionRecord_<TSchema, TUpperMergedState> = MergeState_<
+type ChildViewDefinitionRecord_<TSchema, TUpperMergedState> = OverrideObject_<
   TUpperMergedState,
   StateType<TSchema>
 > extends infer TMergedState
@@ -53,12 +66,14 @@ type ChildViewDefinitionRecord_<TSchema, TUpperMergedState> = MergeState_<
         TMergedState
       >;
     } & {
-      $view?: ViewBuilder_<TMergedState, object>;
+      $view?:
+        | ViewBuilder_<TMergedState, object>
+        | [
+            ViewBuilder_<TMergedState, object>,
+            ...ViewBuilder_<TMergedState, object>[],
+          ];
     }
   : never;
-
-export type MergeState_<TUpperState, TState> = Omit<TUpperState, keyof TState> &
-  TState;
 
 export type IView__ = IView<unknown>;
 

@@ -108,6 +108,68 @@ test('simple case 1', () => {
       >;
 });
 
+test('multiple view builders', () => {
+  const router = new Router(
+    {
+      home: {
+        $state: {
+          a: 1,
+          b: 2,
+        },
+      },
+    },
+    {
+      home: {
+        $view: [
+          _state => {
+            return {
+              b: 'b',
+              c: true,
+            };
+          },
+          () => {
+            return {
+              c: 1,
+              d: true,
+            };
+          },
+        ],
+      },
+    },
+  );
+
+  router.home.$reset();
+
+  expect(router.home.$views).toMatchInlineSnapshot(`
+    [
+      {
+        "$exact": true,
+        "$id": 3,
+        "$transition": undefined,
+        "a": 1,
+        "b": "b",
+        "c": 1,
+        "d": true,
+      },
+    ]
+  `);
+
+  type _ = AssertTrue<
+    IsEqual<
+      typeof router.home.$views,
+      {
+        $id: number;
+        $exact: boolean;
+        $transition: undefined;
+        a: number;
+        b: string;
+        c: number;
+        d: boolean;
+      }[]
+    >
+  >;
+});
+
 test('push pop with shared states', () => {
   const router = new Router({
     home: {
@@ -130,7 +192,7 @@ test('push pop with shared states', () => {
     [
       {
         "$exact": false,
-        "$id": 4,
+        "$id": 5,
         "$transition": undefined,
         "user": "abc",
       },
@@ -141,7 +203,7 @@ test('push pop with shared states', () => {
     [
       {
         "$exact": true,
-        "$id": 4,
+        "$id": 5,
         "$transition": undefined,
         "name": "",
         "user": "abc",
@@ -155,7 +217,7 @@ test('push pop with shared states', () => {
     [
       {
         "$exact": true,
-        "$id": 3,
+        "$id": 4,
         "$transition": undefined,
         "user": "abc",
       },
@@ -216,7 +278,7 @@ test('transition', () => {
     [
       {
         "$exact": true,
-        "$id": 5,
+        "$id": 6,
         "$transition": undefined,
       },
     ]
@@ -226,7 +288,7 @@ test('transition', () => {
     [
       {
         "$exact": false,
-        "$id": 6,
+        "$id": 7,
         "$transition": {
           "progress": 0.8,
         },
@@ -238,7 +300,7 @@ test('transition', () => {
     [
       {
         "$exact": true,
-        "$id": 6,
+        "$id": 7,
         "$transition": {
           "progress": 0.8,
         },
@@ -255,7 +317,7 @@ test('transition', () => {
     [
       {
         "$exact": false,
-        "$id": 6,
+        "$id": 7,
         "$transition": undefined,
       },
     ]
@@ -265,7 +327,7 @@ test('transition', () => {
     [
       {
         "$exact": true,
-        "$id": 6,
+        "$id": 7,
         "$transition": undefined,
         "id": "abc",
       },
