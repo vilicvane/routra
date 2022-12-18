@@ -62,6 +62,8 @@ export class Router_<
         activeEntrySet.delete(entry);
       }
 
+      targetEntry.afterTransition = undefined;
+
       activeEntrySet.add(targetEntry);
     });
   }
@@ -160,8 +162,14 @@ export class Router_<
       newStatePart,
       observableTransitionState,
       (...args) => {
-        targetEntry.afterTransition = observableTransitionState.get();
-        setter(...args);
+        // Even though the assignment below has no observable involved, we want
+        // the effect triggered by the setter to be executed after the
+        // assignment.
+        runInAction(() => {
+          setter(...args);
+
+          targetEntry.afterTransition = observableTransitionState.get();
+        });
       },
       () => {
         runInAction(() => {
