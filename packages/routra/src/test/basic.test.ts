@@ -39,6 +39,9 @@ test('simple case 1', () => {
         "$afterTransition": undefined,
         "$exact": true,
         "$id": 1,
+        "$path": [
+          "home",
+        ],
         "$transition": undefined,
         "user": "vilicvane",
       },
@@ -57,6 +60,10 @@ test('simple case 1', () => {
         "$afterTransition": undefined,
         "$exact": false,
         "$id": 2,
+        "$path": [
+          "home",
+          "hello",
+        ],
         "$transition": undefined,
         "user": "123",
       },
@@ -69,6 +76,10 @@ test('simple case 1', () => {
         "$afterTransition": undefined,
         "$exact": true,
         "$id": 2,
+        "$path": [
+          "home",
+          "hello",
+        ],
         "$transition": undefined,
         "extra": "123",
         "name": "",
@@ -89,6 +100,7 @@ test('simple case 1', () => {
           typeof router.home.$views,
           {
             $id: number;
+            $path: ['home'];
             $exact: boolean;
             $transition: undefined;
             $afterTransition: undefined;
@@ -101,6 +113,7 @@ test('simple case 1', () => {
           typeof router.home.hello.$views,
           {
             $id: number;
+            $path: ['home', 'hello'];
             $exact: boolean;
             $transition: undefined;
             $afterTransition: undefined;
@@ -150,6 +163,9 @@ test('multiple view builders', () => {
         "$afterTransition": undefined,
         "$exact": true,
         "$id": 3,
+        "$path": [
+          "home",
+        ],
         "$transition": undefined,
         "a": 1,
         "b": "b",
@@ -164,6 +180,7 @@ test('multiple view builders', () => {
       typeof router.home.$views,
       {
         $id: number;
+        $path: ['home'];
         $exact: boolean;
         $transition: number | undefined;
         $afterTransition: number | undefined;
@@ -200,6 +217,10 @@ test('push pop with shared states', () => {
         "$afterTransition": undefined,
         "$exact": false,
         "$id": 5,
+        "$path": [
+          "home",
+          "hello",
+        ],
         "$transition": undefined,
         "user": "abc",
       },
@@ -212,6 +233,10 @@ test('push pop with shared states', () => {
         "$afterTransition": undefined,
         "$exact": true,
         "$id": 5,
+        "$path": [
+          "home",
+          "hello",
+        ],
         "$transition": undefined,
         "name": "",
         "user": "abc",
@@ -227,6 +252,9 @@ test('push pop with shared states', () => {
         "$afterTransition": undefined,
         "$exact": true,
         "$id": 4,
+        "$path": [
+          "home",
+        ],
         "$transition": undefined,
         "user": "abc",
       },
@@ -288,6 +316,9 @@ test('transition', () => {
         "$afterTransition": undefined,
         "$exact": true,
         "$id": 6,
+        "$path": [
+          "home",
+        ],
         "$transition": undefined,
       },
     ]
@@ -299,6 +330,10 @@ test('transition', () => {
         "$afterTransition": undefined,
         "$exact": false,
         "$id": 7,
+        "$path": [
+          "inbox",
+          "message",
+        ],
         "$transition": {
           "progress": 0.8,
         },
@@ -312,6 +347,10 @@ test('transition', () => {
         "$afterTransition": undefined,
         "$exact": true,
         "$id": 7,
+        "$path": [
+          "inbox",
+          "message",
+        ],
         "$transition": {
           "progress": 0.8,
         },
@@ -332,6 +371,10 @@ test('transition', () => {
         },
         "$exact": false,
         "$id": 7,
+        "$path": [
+          "inbox",
+          "message",
+        ],
         "$transition": undefined,
       },
     ]
@@ -345,6 +388,10 @@ test('transition', () => {
         },
         "$exact": true,
         "$id": 7,
+        "$path": [
+          "inbox",
+          "message",
+        ],
         "$transition": undefined,
         "id": "abc",
       },
@@ -356,6 +403,7 @@ test('transition', () => {
       typeof router.home.$views,
       {
         $id: number;
+        $path: ['home'];
         $exact: boolean;
         $transition: {progress: number} | undefined;
         $afterTransition: {progress: number} | undefined;

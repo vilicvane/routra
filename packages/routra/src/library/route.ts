@@ -156,7 +156,7 @@ export type RouteType_<
           }
             ? MultiOverrideObject_<
                 TMergedState,
-                [IView<TTransitionState>, TView]
+                [IView<TPath, TTransitionState>, TView]
               >
             : TViewDefinitionRecord extends {
                 $view: infer TViewBuilders extends ViewBuilder__[];
@@ -164,7 +164,7 @@ export type RouteType_<
             ? MultiOverrideObject_<
                 TMergedState,
                 [
-                  IView<TTransitionState>,
+                  IView<TPath, TTransitionState>,
                   ...{
                     [TIndex in keyof TViewBuilders]: TViewBuilders[TIndex] extends ViewBuilder_<
                       unknown,
@@ -175,7 +175,7 @@ export type RouteType_<
                   },
                 ]
               >
-            : OverrideObject_<TMergedState, IView<TTransitionState>>
+            : OverrideObject_<TMergedState, IView<TPath, TTransitionState>>
         ) extends infer TView
           ? TSchema extends {$exact: false}
             ? RouteNode_<TSchema, TView, TPath>

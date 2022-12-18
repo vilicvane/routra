@@ -222,32 +222,37 @@ export class Router_<
   ): ViewEntry {
     const id = transition?.id ?? ++Router_.lastViewEntryId;
 
-    const lastKey = _.last(path)!;
-
     const viewComputedValues: IComputedValue<object>[] = [];
+
+    const sharedMetadata = {
+      get $id(): number {
+        return id;
+      },
+      get $path(): string[] {
+        return path;
+      },
+      get $transition(): unknown {
+        return transition?.observableState.get();
+      },
+      get $afterTransition(): unknown {
+        return entry.afterTransition;
+      },
+    };
 
     const observableStates: object[] = [];
 
     let upperViews = this._views;
 
-    for (const key of path) {
+    const exactIndex = path.length - 1;
+
+    for (const [index, key] of path.entries()) {
       observableStates.unshift(observableStateMap.get(key)!);
 
-      const exact = key === lastKey;
-
       const orderedObservableStatesToKey = [
+        sharedMetadata,
         {
-          get $id(): number {
-            return id;
-          },
           get $exact(): boolean {
-            return exact;
-          },
-          get $transition(): unknown {
-            return transition?.observableState.get();
-          },
-          get $afterTransition(): unknown {
-            return entry.afterTransition;
+            return index === exactIndex;
           },
         },
         ...(transition ? [transition.newStatePart] : []),

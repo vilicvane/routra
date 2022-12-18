@@ -75,10 +75,11 @@ type ChildViewDefinitionRecord_<TSchema, TUpperMergedState> = OverrideObject_<
     }
   : never;
 
-export type IView__ = IView<unknown>;
+export type IView__ = IView<string[], unknown>;
 
-export interface IView<TTransitionState> {
+export interface IView<TPath extends string[], TTransitionState> {
   $id: number;
+  $path: TPath;
   $exact: boolean;
   $transition: TTransitionState | undefined;
   $afterTransition: TTransitionState | undefined;

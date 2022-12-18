@@ -2,7 +2,7 @@ import {computed, makeObservable, observable, runInAction} from 'mobx';
 import {observer} from 'mobx-react';
 import type {ComponentType, ReactNode} from 'react';
 import React, {Component, createContext} from 'react';
-import type {IView, IView__, RouteNode__, RouteView} from 'routra';
+import type {IView__, RouteNode__, RouteView} from 'routra';
 
 const STABLE_OPTION_DEFAULT = false;
 const SINGLE_OPTION_DEFAULT = false;
@@ -10,7 +10,7 @@ const LEAVING_OPTION_DEFAULT = false;
 
 export interface RouteContext {
   route: RouteNode__;
-  view: IView<unknown>;
+  view: IView__;
 }
 
 export const RouteContext = createContext<RouteContext>(undefined!);
