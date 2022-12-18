@@ -10,6 +10,7 @@ export interface ViewEntry {
   viewComputedValues: IComputedValue<object>[];
   previous?: ViewEntry;
   transition: boolean;
+  afterTransition: unknown;
 }
 
 export interface ViewDefinitionRecord__ {
@@ -80,4 +81,5 @@ export interface IView<TTransitionState> {
   $id: number;
   $exact: boolean;
   $transition: TTransitionState | undefined;
+  $afterTransition: TTransitionState | undefined;
 }

@@ -75,6 +75,21 @@ export class RouteNodeObject_<TView, TPath extends string[]> {
       ._getActiveEntries(path)
       .map(entry => entry.viewComputedValues[path.length - 1]!.get() as any);
   }
+
+  @computed
+  get $matched(): boolean {
+    return this.$views.length > 0;
+  }
+
+  @computed
+  get $exact(): boolean {
+    return this.$views.some(view => view.$exact);
+  }
+
+  @computed
+  get $stable(): boolean {
+    return this.$views.some(view => view.$transition !== undefined);
+  }
 }
 
 export interface RouteNode_<TSchema, TView, TPath extends string[]>

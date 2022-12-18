@@ -159,7 +159,10 @@ export class Router_<
       transitionEntry,
       newStatePart,
       observableTransitionState,
-      setter,
+      (...args) => {
+        targetEntry.afterTransition = observableTransitionState.get();
+        setter(...args);
+      },
       () => {
         runInAction(() => {
           this._activeEntrySet.delete(transitionEntry);
@@ -235,6 +238,9 @@ export class Router_<
           get $transition(): unknown {
             return transition?.observableState.get();
           },
+          get $afterTransition(): unknown {
+            return entry.afterTransition;
+          },
         },
         ...(transition ? [transition.newStatePart] : []),
         ...observableStates,
@@ -298,6 +304,7 @@ export class Router_<
       viewComputedValues,
       previous,
       transition: transition !== undefined,
+      afterTransition: undefined,
     };
 
     return entry;
