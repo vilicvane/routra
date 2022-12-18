@@ -74,7 +74,7 @@ export class Router_<
 
   _reset(
     path: string[],
-    newStateMap: Map<string, object>,
+    newStateMap: Map<number, object>,
   ): RouteOperation_<unknown, unknown> {
     const activeEntry = this._getStableActiveViewEntry();
 
@@ -92,7 +92,7 @@ export class Router_<
 
   _push(
     path: string[],
-    newStateMap: Map<string, object>,
+    newStateMap: Map<number, object>,
   ): RouteOperation_<unknown, unknown> {
     const activeEntry = this._requireStableActiveViewEntry();
 
@@ -114,7 +114,7 @@ export class Router_<
 
   _replace(
     path: string[],
-    newStateMap: Map<string, object>,
+    newStateMap: Map<number, object>,
   ): RouteOperation_<unknown, unknown> {
     const activeEntry = this._requireStableActiveViewEntry();
 
@@ -325,7 +325,7 @@ export class Router_<
 
   private _buildStateMap(
     path: string[],
-    newStateMap: Map<string, object>,
+    newStateMap: Map<number, object>,
     activeEntry: ViewEntry | undefined,
   ): Map<string, object> {
     const {path: activePath, stateMap: activeStateMap} = activeEntry ?? {
@@ -339,8 +339,8 @@ export class Router_<
 
     let upperSchemas = this._schemas;
 
-    for (const key of commonStartKeys) {
-      const state = newStateMap.get(key);
+    for (const [index, key] of commonStartKeys.entries()) {
+      const state = newStateMap.get(index);
 
       stateMap.set(key, state ? observable(state) : activeStateMap.get(key)!);
 
@@ -349,7 +349,7 @@ export class Router_<
       upperSchemas = typeof schemas === 'object' ? schemas : {};
     }
 
-    for (const key of path.slice(commonStartKeys.length)) {
+    for (const [index, key] of path.slice(commonStartKeys.length).entries()) {
       let schemas = upperSchemas[key];
 
       if (schemas === true) {
@@ -357,7 +357,8 @@ export class Router_<
       }
 
       const state =
-        newStateMap.get(key) ?? ('$state' in schemas ? schemas.$state : {});
+        newStateMap.get(commonStartKeys.length + index) ??
+        ('$state' in schemas ? schemas.$state : {});
 
       if (!state) {
         throw new Error(

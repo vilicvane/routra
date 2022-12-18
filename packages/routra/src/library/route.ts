@@ -15,7 +15,7 @@ export function createRoute(
   router: Router__,
   schema: Schema__,
   path: string[],
-  newStateMap: Map<string, object>,
+  newStateMap: Map<number, object>,
 ): Route_<Schema__, object, object, string[], unknown> {
   const Route = schema.$exact === false ? RouteNodeObject_ : RouteObject_;
 
@@ -24,7 +24,7 @@ export function createRoute(
       router,
       schema,
       path,
-      new Map([...newStateMap, [_.last(path)!, state]]),
+      new Map([...newStateMap, [path.length - 1, state]]),
     );
 
   Object.setPrototypeOf(route, new Route(router, schema, path, newStateMap));
@@ -39,7 +39,7 @@ export class RouteNodeObject_<TView, TPath extends string[]> {
     readonly $router: Router__,
     schema: Schema__,
     readonly $path: TPath,
-    protected _newStateMap: Map<string, object>,
+    protected _newStateMap: Map<number, object>,
   ) {
     makeObservable(this);
 
@@ -107,7 +107,7 @@ export class RouteObject_<
     $router: Router__,
     schema: Schema__,
     $path: TPath,
-    newStateMap: Map<string, object>,
+    newStateMap: Map<number, object>,
   ) {
     super($router, schema, $path, newStateMap);
   }
