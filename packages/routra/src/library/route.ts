@@ -88,7 +88,7 @@ export class RouteNodeObject_<TView, TPath extends string[]> {
 
   @computed
   get $stable(): boolean {
-    return this.$views.some(view => view.$transition !== undefined);
+    return this.$views.some(view => view.$transition === undefined);
   }
 }
 
