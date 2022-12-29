@@ -5,7 +5,7 @@ import type {Router__} from './router';
 import type {Transition} from './transition';
 import type {ViewEntry} from './view';
 
-export type RouteOperationSetter = (obsoleteEntries: ViewEntry[]) => void;
+export type RouteOperationSetter = () => void;
 
 export function createRouteOperation(
   router: Router__,
@@ -15,7 +15,7 @@ export function createRouteOperation(
   return Object.setPrototypeOf((statePart: object = {}) => {
     runInAction(() => {
       updateStateMapByPart(targetEntry.path, targetEntry.stateMap, statePart);
-      setter([]);
+      setter();
     });
   }, new RouteOperationObject_(router, targetEntry, setter));
 }
@@ -53,7 +53,7 @@ export function createRouteBack(
   return Object.setPrototypeOf((statePart: object = {}) => {
     runInAction(() => {
       updateStateMapByPart(targetEntry.path, targetEntry.stateMap, statePart);
-      setter([]);
+      setter();
     });
   }, new RouteBackObject_(router, targetEntry, setter));
 }

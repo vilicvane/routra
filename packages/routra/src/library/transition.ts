@@ -41,13 +41,15 @@ export class TransitionObject {
 
     runInAction(() => {
       updateStateMapByPart(path, stateMap, this.newStatePart);
-      setter([this.transitionEntry]);
+      setter();
     });
   }
 
   $abort(): void {
     const abortHandler = this.abortHandler;
 
-    abortHandler();
+    runInAction(() => {
+      abortHandler();
+    });
   }
 }

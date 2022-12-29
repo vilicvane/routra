@@ -53,14 +53,10 @@ export class Router_<
       throw new Error('No previous entry');
     }
 
-    return createRouteBack(this, targetEntry, obsoleteEntries => {
+    return createRouteBack(this, targetEntry, () => {
       const activeEntrySet = this._activeEntrySet;
 
       activeEntrySet.delete(activeEntry);
-
-      for (const entry of obsoleteEntries) {
-        activeEntrySet.delete(entry);
-      }
 
       targetEntry.afterTransition = undefined;
 
@@ -99,14 +95,10 @@ export class Router_<
     const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
     const targetEntry = this._buildEntry(path, stateMap, activeEntry);
 
-    return createRouteOperation(this, targetEntry, obsoleteEntries => {
+    return createRouteOperation(this, targetEntry, () => {
       const activeEntrySet = this._activeEntrySet;
 
       activeEntrySet.delete(activeEntry);
-
-      for (const entry of obsoleteEntries) {
-        activeEntrySet.delete(entry);
-      }
 
       activeEntrySet.add(targetEntry);
     });
@@ -121,14 +113,10 @@ export class Router_<
     const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
     const targetEntry = this._buildEntry(path, stateMap, activeEntry.previous);
 
-    return createRouteOperation(this, targetEntry, obsoleteEntries => {
+    return createRouteOperation(this, targetEntry, () => {
       const activeEntrySet = this._activeEntrySet;
 
       activeEntrySet.delete(activeEntry);
-
-      for (const entry of obsoleteEntries) {
-        activeEntrySet.delete(entry);
-      }
 
       activeEntrySet.add(targetEntry);
     });
@@ -161,20 +149,13 @@ export class Router_<
       transitionEntry,
       newStatePart,
       observableTransitionState,
-      (...args) => {
-        // Even though the assignment below has no observable involved, we want
-        // the effect triggered by the setter to be executed after the
-        // assignment.
-        runInAction(() => {
-          setter(...args);
-
-          targetEntry.afterTransition = observableTransitionState.get();
-        });
+      () => {
+        setter();
+        targetEntry.afterTransition = observableTransitionState.get();
+        this._activeEntrySet.delete(transitionEntry);
       },
       () => {
-        runInAction(() => {
-          this._activeEntrySet.delete(transitionEntry);
-        });
+        this._activeEntrySet.delete(transitionEntry);
       },
     );
   }
