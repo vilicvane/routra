@@ -31,7 +31,6 @@ export type MultiOverrideObject_<TObject, TOverrides> = TOverrides extends [
     >
   : TObject;
 
-/** @internal */
 export function createMergedObjectProxy(objects: object[]): object {
   return new Proxy(
     {},
