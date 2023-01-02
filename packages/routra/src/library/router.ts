@@ -2,7 +2,7 @@ import _ from 'lodash';
 import type {IComputedValue, IObservableValue} from 'mobx';
 import {computed, observable, runInAction} from 'mobx';
 
-import {createMergedObjectProxy, getCommonStartOfTwoArray} from './@utils';
+import {getCommonStartOfTwoArray} from './@utils';
 import type {RouteType_} from './route';
 import {createRoute} from './route';
 import type {
@@ -14,6 +14,7 @@ import {createRouteBack, createRouteOperation} from './route-operation';
 import type {SchemaRecord__} from './schema';
 import type {Transition} from './transition';
 import {createTransition} from './transition';
+import {createMergedObjectProxy} from './utils';
 import type {
   ClassViewBuilder__,
   FunctionViewBuilder__,

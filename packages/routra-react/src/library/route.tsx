@@ -3,6 +3,7 @@ import {observer} from 'mobx-react';
 import type {ComponentType, ReactNode} from 'react';
 import React, {Component, createContext} from 'react';
 import type {IView__, RouteNode__, RouteView} from 'routra';
+import {createMergedObjectProxy} from 'routra';
 
 const STABLE_OPTION_DEFAULT = false;
 const SINGLE_OPTION_DEFAULT = false;
@@ -43,6 +44,13 @@ export class Route<TRoute extends RouteNode__> extends Component<
   @observable
   private tick = 0;
 
+  private single:
+    | {
+        view: IView__;
+        mergedView: IView__;
+      }
+    | undefined;
+
   constructor(props: RouteProps<TRoute>) {
     super(props);
 
@@ -53,6 +61,7 @@ export class Route<TRoute extends RouteNode__> extends Component<
   private get viewEntries(): RouteViewEntry[] {
     const {
       match,
+      exact,
       stable = STABLE_OPTION_DEFAULT,
       single = SINGLE_OPTION_DEFAULT,
       leaving: leavingEnabled = LEAVING_OPTION_DEFAULT,
@@ -68,6 +77,12 @@ export class Route<TRoute extends RouteNode__> extends Component<
     let matchedViewAndRouteTuples = matches.flatMap(match =>
       match.$views.map((view): [IView__, RouteNode__] => [view, match]),
     );
+
+    if (typeof exact === 'boolean') {
+      matchedViewAndRouteTuples = matchedViewAndRouteTuples.filter(
+        ([view]) => view.$exact === exact,
+      );
+    }
 
     if (stable) {
       matchedViewAndRouteTuples = matchedViewAndRouteTuples.filter(
@@ -98,19 +113,25 @@ export class Route<TRoute extends RouteNode__> extends Component<
         continue;
       }
 
-      if (leavingEnabled && !single) {
-        viewToEntryMap.set(view, {
-          ...entry,
-          leaving: {
-            $complete: () => {
-              viewToEntryMap.delete(view);
+      // Otherwise this view is no longer active.
 
-              runInAction(() => {
-                this.tick++;
-              });
+      if (leavingEnabled) {
+        if (single && matchedViewAndRouteTuples.length > 0) {
+          viewToEntryMap.delete(view);
+        } else {
+          viewToEntryMap.set(view, {
+            ...entry,
+            leaving: {
+              $complete: () => {
+                viewToEntryMap.delete(view);
+
+                runInAction(() => {
+                  this.tick++;
+                });
+              },
             },
-          },
-        });
+          });
+        }
       } else {
         viewToEntryMap.delete(view);
       }
@@ -119,32 +140,107 @@ export class Route<TRoute extends RouteNode__> extends Component<
     for (const [view, route] of pendingIteratingMatchedViewToRouteMap) {
       // Add view to `viewToEntryMap` if not in it yet.
       viewToEntryMap.set(view, {
+        key: view.$id,
         view,
         route,
         leaving: false,
       });
     }
 
-    return Array.from(viewToEntryMap.values());
+    const entries = Array.from(viewToEntryMap.values());
+
+    if (single) {
+      if (entries.length === 0) {
+        if (this.single) {
+          this.single = undefined;
+        }
+
+        return [];
+      }
+
+      const [{key: _key, view, ...rest}] = entries;
+
+      const recordedSingle = this.single;
+
+      if (!recordedSingle) {
+        if (view.$transition === undefined) {
+          this.single = {
+            view,
+            mergedView: view,
+          };
+        }
+
+        return [
+          {
+            key: 'single',
+            view,
+            ...rest,
+          },
+        ];
+      }
+
+      if (view.$transition !== undefined) {
+        this.single = undefined;
+
+        return [
+          {
+            key: 'single',
+            view,
+            ...rest,
+          },
+        ];
+      }
+
+      const {view: recordedView, mergedView: recordedMergedView} =
+        recordedSingle;
+
+      if (view === recordedView) {
+        return [
+          {
+            key: 'single',
+            view: recordedMergedView,
+            ...rest,
+          },
+        ];
+      }
+
+      const {$transition, $afterTransition} = recordedMergedView;
+
+      const mergedView = createMergedObjectProxy([
+        {
+          get $transition() {
+            return $transition;
+          },
+          get $afterTransition() {
+            return $afterTransition;
+          },
+        },
+        view,
+      ]) as IView__;
+
+      this.single = {
+        view,
+        mergedView,
+      };
+
+      return [
+        {
+          key: 'single',
+          view: mergedView,
+          ...rest,
+        },
+      ];
+    } else {
+      return entries;
+    }
   }
 
   override render(): ReactNode {
-    const {
-      single = SINGLE_OPTION_DEFAULT,
-      exact,
-      component: Component,
-    } = this.props;
+    const {component: Component} = this.props;
 
-    return this.viewEntries.map(({view, route, leaving}) => {
-      if (!(exact === undefined || exact === view.$exact)) {
-        return null;
-      }
-
+    return this.viewEntries.map(({key, view, route, leaving}) => {
       return (
-        <RouteContext.Provider
-          key={single ? 'single' : view.$id}
-          value={{route, view}}
-        >
+        <RouteContext.Provider key={key} value={{route, view}}>
           <Component route={route as TRoute} view={view} leaving={leaving} />
         </RouteContext.Provider>
       );
@@ -153,6 +249,7 @@ export class Route<TRoute extends RouteNode__> extends Component<
 }
 
 interface RouteViewEntry {
+  key: number | string;
   view: IView__;
   route: RouteNode__;
   leaving: RouteComponentLeaving | false;
