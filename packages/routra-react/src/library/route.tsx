@@ -5,16 +5,15 @@ import React, {Component, createContext} from 'react';
 import type {IView__, RouteNode__, RouteView} from 'routra';
 import {createMergedObjectProxy} from 'routra';
 
+import type {MatchContextObject} from './@match-context';
+import {MatchContext} from './@match-context';
+import {routraReactOptions} from './options';
+
 const STABLE_OPTION_DEFAULT = false;
 const SINGLE_OPTION_DEFAULT = false;
 const LEAVING_OPTION_DEFAULT = false;
 
-export interface RouteContext {
-  route: RouteNode__;
-  view: IView__;
-}
-
-export const RouteContext = createContext<RouteContext>(undefined!);
+export const RouteContext = createContext<RouteViewEntry>(undefined!);
 
 export interface RouteComponentLeaving {
   $complete(): void;
@@ -31,7 +30,7 @@ export interface RouteProps<TRoute extends RouteNode__> {
   exact?: boolean;
   stable?: boolean;
   single?: boolean;
-  leaving?: boolean;
+  leaving?: boolean | number;
   component: ComponentType<RouteComponentProps<TRoute>>;
 }
 
@@ -39,6 +38,8 @@ export interface RouteProps<TRoute extends RouteNode__> {
 export class Route<TRoute extends RouteNode__> extends Component<
   RouteProps<TRoute>
 > {
+  declare context: MatchContextObject | undefined;
+
   private _viewToEntryMap = new Map<RouteView<TRoute>, RouteViewEntry>();
 
   @observable
@@ -50,6 +51,8 @@ export class Route<TRoute extends RouteNode__> extends Component<
         mergedView: IView__;
       }
     | undefined;
+
+  private emptyContent = false;
 
   constructor(props: RouteProps<TRoute>) {
     super(props);
@@ -64,7 +67,7 @@ export class Route<TRoute extends RouteNode__> extends Component<
       exact,
       stable = STABLE_OPTION_DEFAULT,
       single = SINGLE_OPTION_DEFAULT,
-      leaving: leavingEnabled = LEAVING_OPTION_DEFAULT,
+      leaving = LEAVING_OPTION_DEFAULT,
     } = this.props;
 
     // Reference tick observable.
@@ -115,26 +118,40 @@ export class Route<TRoute extends RouteNode__> extends Component<
 
       // Otherwise this view is no longer active.
 
-      if (leavingEnabled) {
-        if (single && matchedViewAndRouteTuples.length > 0) {
-          viewToEntryMap.delete(view);
-        } else {
-          viewToEntryMap.set(view, {
-            ...entry,
-            leaving: {
-              $complete: () => {
-                viewToEntryMap.delete(view);
+      if (
+        leaving === false ||
+        (single && matchedViewAndRouteTuples.length > 0) ||
+        view.$transition !== undefined
+      ) {
+        viewToEntryMap.delete(view);
+        continue;
+      }
 
-                runInAction(() => {
-                  this.tick++;
-                });
-              },
-            },
+      let leavingTimeoutId: number | undefined;
+
+      const complete = (): void => {
+        clearTimeout(leavingTimeoutId);
+
+        if (viewToEntryMap.delete(view)) {
+          runInAction(() => {
+            this.tick++;
           });
         }
-      } else {
-        viewToEntryMap.delete(view);
-      }
+      };
+
+      viewToEntryMap.set(view, {
+        ...entry,
+        leaving: {
+          $complete: complete,
+        },
+      });
+
+      leavingTimeoutId = setTimeout(
+        complete,
+        typeof leaving === 'number'
+          ? leaving
+          : routraReactOptions.defaultLeavingTimeout,
+      );
     }
 
     for (const [view, route] of pendingIteratingMatchedViewToRouteMap) {
@@ -238,14 +255,42 @@ export class Route<TRoute extends RouteNode__> extends Component<
   override render(): ReactNode {
     const {component: Component} = this.props;
 
-    return this.viewEntries.map(({key, view, route, leaving}) => {
+    const content = this.viewEntries.map(entry => {
+      const {key, view, route, leaving} = entry;
+
       return (
-        <RouteContext.Provider key={key} value={{route, view}}>
+        <RouteContext.Provider key={key} value={entry}>
           <Component route={route as TRoute} view={view} leaving={leaving} />
         </RouteContext.Provider>
       );
     });
+
+    this.emptyContent = content.length === 0;
+
+    return content;
   }
+
+  override componentDidMount(): void {
+    this.componentDidUpdate();
+  }
+
+  override componentDidUpdate(): void {
+    const {context} = this;
+
+    if (this.emptyContent) {
+      context?.unmount(this);
+    } else {
+      context?.mount(this);
+    }
+  }
+
+  override componentWillUnmount(): void {
+    const {context} = this;
+
+    context?.unmount(this);
+  }
+
+  static override contextType = MatchContext;
 }
 
 interface RouteViewEntry {

@@ -73,7 +73,7 @@ export class RouteNodeObject_<TView, TPath extends string[]> {
 
     return this.$router
       ._getActiveEntries(path)
-      .map(entry => entry.viewComputedValues[path.length - 1]!.get() as any);
+      .map(entry => entry.mergedViews[path.length - 1] as any);
   }
 
   @computed

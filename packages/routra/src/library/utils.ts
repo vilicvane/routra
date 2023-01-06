@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import {computed} from 'mobx';
 
 import type {RouteNode__} from './route';
 import type {Router_, Router__} from './router';
@@ -31,12 +32,19 @@ export type MultiOverrideObject_<TObject, TOverrides> = TOverrides extends [
     >
   : TObject;
 
-export function createMergedObjectProxy(objects: object[]): object {
+export function createMergedObjectProxy(
+  objects: object[] | (() => object[]),
+): object {
+  const objectsGetter =
+    typeof objects === 'function' ? objects : (): object[] => objects;
+
+  const objectsComputed = computed(() => objectsGetter());
+
   return new Proxy(
     {},
     {
       has(_target, key) {
-        for (const object of objects) {
+        for (const object of objectsComputed.get()) {
           if (key in object) {
             return true;
           }
@@ -45,7 +53,7 @@ export function createMergedObjectProxy(objects: object[]): object {
         return false;
       },
       get(_target, key) {
-        for (const object of objects) {
+        for (const object of objectsComputed.get()) {
           if (key in object) {
             return (object as any)[key];
           }
@@ -54,7 +62,7 @@ export function createMergedObjectProxy(objects: object[]): object {
         return undefined;
       },
       set(_target, key, value) {
-        for (const object of objects) {
+        for (const object of objectsComputed.get()) {
           if (key in object) {
             return Reflect.set(object, key, value);
           }
@@ -63,7 +71,7 @@ export function createMergedObjectProxy(objects: object[]): object {
         return false;
       },
       getOwnPropertyDescriptor(_target, key) {
-        for (const object of objects) {
+        for (const object of objectsComputed.get()) {
           const descriptor = Reflect.getOwnPropertyDescriptor(object, key);
 
           if (descriptor) {
@@ -74,7 +82,9 @@ export function createMergedObjectProxy(objects: object[]): object {
         return undefined;
       },
       ownKeys() {
-        return _.uniq(objects.flatMap(object => Object.keys(object)));
+        return _.uniq(
+          objectsComputed.get().flatMap(object => Object.keys(object)),
+        );
       },
     },
   );

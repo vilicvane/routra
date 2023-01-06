@@ -1,5 +1,3 @@
-import type {IComputedValue} from 'mobx';
-
 import type {SchemaRecord__, StateType} from './schema';
 import type {OverrideObject_} from './utils';
 
@@ -7,7 +5,7 @@ export interface ViewEntry {
   id: number;
   path: string[];
   stateMap: Map<string, object>;
-  viewComputedValues: IComputedValue<object>[];
+  mergedViews: object[];
   previous?: ViewEntry;
   transition: boolean;
   afterTransition: unknown;

@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import type {IComputedValue, IObservableValue} from 'mobx';
+import type {IObservableValue} from 'mobx';
 import {computed, observable, runInAction} from 'mobx';
 
 import {getCommonStartOfTwoArray} from './@utils';
@@ -204,7 +204,7 @@ export class Router_<
   ): ViewEntry {
     const id = transition?.id ?? ++Router_.lastViewEntryId;
 
-    const viewComputedValues: IComputedValue<object>[] = [];
+    const mergedViews: object[] = [];
 
     const sharedMetadata = {
       get $id(): number {
@@ -272,22 +272,19 @@ export class Router_<
         computed(() => viewBuilder(mergedObservableState)),
       );
 
-      const mergedViewComputedValue = computed(() => {
+      const mergedViewComputedValue = createMergedObjectProxy(() => {
         if (builtViewComputedValues.length === 0) {
-          return mergedObservableState;
+          return [mergedObservableState];
         }
 
         const views = builtViewComputedValues.map(computedValue =>
           computedValue.get(),
         );
 
-        return createMergedObjectProxy([
-          ...views,
-          ...orderedObservableStatesToKey,
-        ]);
+        return [...views, ...orderedObservableStatesToKey];
       });
 
-      viewComputedValues.push(mergedViewComputedValue);
+      mergedViews.push(mergedViewComputedValue);
 
       upperViews = views;
     }
@@ -296,7 +293,7 @@ export class Router_<
       id,
       path,
       stateMap: observableStateMap,
-      viewComputedValues,
+      mergedViews,
       previous,
       transition: transition !== undefined,
       afterTransition: undefined,
