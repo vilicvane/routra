@@ -12,7 +12,6 @@ import type {
 } from './route-operation';
 import {createRouteBack, createRouteOperation} from './route-operation';
 import type {SchemaRecord__} from './schema';
-import type {Transition} from './transition';
 import {createTransition} from './transition';
 import {createMergedObjectProxy} from './utils';
 import type {
@@ -27,9 +26,16 @@ export class Router_<
   TRootViewDefinitionRecord,
   TTransitionState,
 > {
-  private _activeEntrySet = observable.set<ViewEntry>([], {
-    deep: false,
-  });
+  @observable.ref
+  private current: ViewEntry | undefined;
+
+  @observable.ref
+  private entering: Entering<TTransitionState> | undefined;
+
+  private readonly queue: ViewEntry[] = [];
+
+  @observable.ref
+  private transition: Transition<TTransitionState> | undefined;
 
   constructor(schemas: TSchemaRecord, views?: TRootViewDefinitionRecord);
   constructor(
@@ -46,22 +52,16 @@ export class Router_<
   }
 
   get $back(): RouteBack_<TTransitionState> {
-    const activeEntry = this._requireStableActiveViewEntry();
+    const currentEntry = this._requireCurrentViewEntry();
 
-    const targetEntry = activeEntry.previous;
+    const targetEntry = currentEntry.previous;
 
     if (!targetEntry) {
       throw new Error('No previous entry');
     }
 
     return createRouteBack(this, targetEntry, () => {
-      const activeEntrySet = this._activeEntrySet;
-
-      activeEntrySet.delete(activeEntry);
-
-      targetEntry.afterTransition = undefined;
-
-      activeEntrySet.add(targetEntry);
+      this._startTransition(targetEntry);
     });
   }
 
@@ -91,7 +91,7 @@ export class Router_<
     path: string[],
     newStateMap: Map<number, object>,
   ): RouteOperation_<unknown, unknown> {
-    const activeEntry = this._requireStableActiveViewEntry();
+    const activeEntry = this._requireCurrentViewEntry();
 
     const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
     const targetEntry = this._buildEntry(path, stateMap, activeEntry);
@@ -109,7 +109,7 @@ export class Router_<
     path: string[],
     newStateMap: Map<number, object>,
   ): RouteOperation_<unknown, unknown> {
-    const activeEntry = this._requireStableActiveViewEntry();
+    const activeEntry = this._requireCurrentViewEntry();
 
     const stateMap = this._buildStateMap(path, newStateMap, activeEntry);
     const targetEntry = this._buildEntry(path, stateMap, activeEntry.previous);
@@ -162,32 +162,68 @@ export class Router_<
   }
 
   _getActiveEntries(path: string[]): ViewEntry[] {
-    return Array.from(this._activeEntrySet).filter(
+    const current = this._requireCurrentViewEntry();
+
+    const entering = this.entering;
+
+    const entries = entering ? [current, entering] : [current];
+
+    return entries.filter(
       entry =>
         getCommonStartOfTwoArray(entry.path, path).length === path.length,
     );
   }
 
-  private _requireStableActiveViewEntry(): ViewEntry {
-    const entry = this._getStableActiveViewEntry();
+  private _startTransition(target: ViewEntry): void {
+    if (this.entering) {
+      this.queue.push(target);
+      return;
+    }
+
+    this.entering = {
+      controlled: false,
+      transition: undefined,
+      entry: target,
+    };
+
+    setTimeout(() => {
+      if (this.transition) {
+        // Managed by view.
+        return;
+      }
+
+      this._finishTransition();
+    });
+  }
+
+  private _finishTransition(): void {
+    const entering = this.entering;
+
+    if (!entering) {
+      return;
+    }
+
+    runInAction(() => {
+      this.current = entering.entry;
+
+      this.entering = undefined;
+
+      const next = this.queue.shift();
+
+      if (next) {
+        this._startTransition(next);
+      }
+    });
+  }
+
+  private _requireCurrentViewEntry(): ViewEntry {
+    const entry = this.current;
 
     if (!entry) {
-      throw new Error('No stable active view entry');
+      throw new Error('No current active view entry');
     }
 
     return entry;
-  }
-
-  private _getStableActiveViewEntry(): ViewEntry | undefined {
-    for (const entry of this._activeEntrySet) {
-      if (entry.transition) {
-        continue;
-      }
-
-      return entry;
-    }
-
-    return undefined;
   }
 
   private _buildEntry(
@@ -206,7 +242,7 @@ export class Router_<
 
     const mergedViews: object[] = [];
 
-    const sharedMetadata = {
+    const shared = {
       get $id(): number {
         return id;
       },
@@ -231,7 +267,7 @@ export class Router_<
       observableStates.unshift(observableStateMap.get(key)!);
 
       const orderedObservableStatesToKey = [
-        sharedMetadata,
+        shared,
         {
           get $exact(): boolean {
             return index === exactIndex;
@@ -389,3 +425,14 @@ type TransitionState_<TRootViewDefinitionRecord> =
   }
     ? TransitionState
     : undefined;
+
+interface Transition<TTransitionState> {
+  controlled: boolean;
+  state: TTransitionState;
+}
+
+interface Entering<TTransitionState> {
+  controlled: boolean;
+  transition: TTransitionState | undefined;
+  entry: ViewEntry;
+}

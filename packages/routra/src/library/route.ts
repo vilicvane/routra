@@ -76,16 +76,25 @@ export class RouteNodeObject_<TView, TPath extends string[]> {
       .map(entry => entry.mergedViews[path.length - 1] as any);
   }
 
+  /**
+   * @deprecated
+   */
   @computed
   get $matched(): boolean {
     return this.$views.length > 0;
   }
 
+  /**
+   * @deprecated
+   */
   @computed
   get $exact(): boolean {
     return this.$views.some(view => view.$exact);
   }
 
+  /**
+   * @deprecated
+   */
   @computed
   get $stable(): boolean {
     return this.$views.some(view => view.$transition === undefined);

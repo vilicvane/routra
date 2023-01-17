@@ -1,6 +1,7 @@
 import type {SchemaRecord__, StateType} from './schema';
 import type {OverrideObject_} from './utils';
 
+// TODO: route entry?
 export interface ViewEntry {
   id: number;
   path: string[];
@@ -9,6 +10,8 @@ export interface ViewEntry {
   previous?: ViewEntry;
   transition: boolean;
   afterTransition: unknown;
+  enteringSet: Set<object>;
+  leavingSet: Set<object>;
 }
 
 export interface ViewDefinitionRecord__ {
