@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "routra": "^0.1.3",
-    "tslib": "^2.4.0"
+    "tslib": "^2.4.1"
   },
   "peerDependencies": {
     "mobx": "6",
