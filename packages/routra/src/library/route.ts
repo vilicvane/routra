@@ -1,22 +1,22 @@
 import _ from 'lodash';
 import {computed, makeObservable} from 'mobx';
 
+import {getCommonStartOfTwoArray, isArrayStartedWith} from './@utils';
+import {RouteMatch} from './route-matched';
 import type {RouteOperation_} from './route-operation';
 import type {Router__} from './router';
-import type {Schema__, StateType} from './schema';
-import type {MultiOverrideObject_, OverrideObject_} from './utils';
-import type {IView, IView__, ViewBuilder_, ViewBuilder__} from './view';
+import type {Schema} from './schema';
 
-export type Route__ = Route_<Schema__, object, object, string[], unknown>;
+export type Route__ = Route_<Schema, object, object, string[], unknown>;
 
-export type RouteNode__ = RouteNode_<Schema__, object, string[]>;
+export type RouteNode__ = RouteNode_<Schema, object, string[]>;
 
 export function createRoute(
   router: Router__,
-  schema: Schema__,
+  schema: Schema,
   path: string[],
-  newStateMap: Map<number, object>,
-): Route_<Schema__, object, object, string[], unknown> {
+  stateMapUpdate: Map<number, object>,
+): Route__ {
   const Route = schema.$exact === false ? RouteNodeObject_ : RouteObject_;
 
   const route: any = (state: object) =>
@@ -24,10 +24,10 @@ export function createRoute(
       router,
       schema,
       path,
-      new Map([...newStateMap, [path.length - 1, state]]),
+      new Map([...stateMapUpdate, [path.length - 1, state]]),
     );
 
-  Object.setPrototypeOf(route, new Route(router, schema, path, newStateMap));
+  Object.setPrototypeOf(route, new Route(router, schema, path, stateMapUpdate));
 
   return route;
 }
@@ -35,69 +35,62 @@ export function createRoute(
 export class RouteNodeObject_<TView, TPath extends string[]> {
   readonly $key = _.last(this.$path)!;
 
+  /**
+   * @internal
+   */
+  _exact = false;
+
   constructor(
     readonly $router: Router__,
-    schema: Schema__,
+    {$children}: Schema,
     readonly $path: TPath,
-    protected _newStateMap: Map<number, object>,
+    protected _stateMapUpdate: Map<number, object>,
   ) {
     makeObservable(this);
 
-    const pathKeySet = new Set($path);
+    if ($children) {
+      for (let [key, childSchema] of Object.entries($children)) {
+        if (childSchema === true) {
+          childSchema = {};
+        }
 
-    for (let [key, childSchema] of Object.entries(schema)) {
-      if (key.startsWith('$')) {
-        continue;
+        (this as any)[key] = createRoute(
+          $router,
+          childSchema as Schema,
+          [...$path, key],
+          _stateMapUpdate,
+        );
       }
-
-      if (pathKeySet.has(key)) {
-        throw new Error(`Duplicate key in path ${JSON.stringify(key)}`);
-      }
-
-      if (childSchema === true) {
-        childSchema = {};
-      }
-
-      (this as any)[key] = createRoute(
-        $router,
-        childSchema as Schema__,
-        [...$path, key],
-        _newStateMap,
-      );
     }
   }
 
-  @computed
-  get $views(): (TView & IView__)[] {
-    const path = this.$path;
+  get $active(): RouteMatch | false {
+    const {$router} = this;
 
-    return this.$router
-      ._getActiveEntries(path)
-      .map(entry => entry.mergedViews[path.length - 1] as any);
+    const active = $router._requireActiveRouteEntry();
+
+    if (!this._isMatched(active)) {
+      return false;
+    }
+
+    return new RouteMatch(active);
   }
 
-  /**
-   * @deprecated
-   */
   @computed
-  get $matched(): boolean {
-    return this.$views.length > 0;
+  get $exact(): this {
+    return Object.create(this, {
+      _exact: {
+        value: true,
+      },
+    });
   }
 
-  /**
-   * @deprecated
-   */
-  @computed
-  get $exact(): boolean {
-    return this.$views.some(view => view.$exact);
-  }
+  private _isMatched({path: entryPath}: RouteEntry): boolean {
+    const {$path} = this;
 
-  /**
-   * @deprecated
-   */
-  @computed
-  get $stable(): boolean {
-    return this.$views.some(view => view.$transition === undefined);
+    return this._exact
+      ? _.isEqual(entryPath, $path)
+      : isArrayStartedWith(entryPath, $path);
   }
 }
 
@@ -114,7 +107,7 @@ export class RouteObject_<
 > extends RouteNodeObject_<TView, TPath> {
   constructor(
     $router: Router__,
-    schema: Schema__,
+    schema: Schema,
     $path: TPath,
     newStateMap: Map<number, object>,
   ) {
@@ -122,15 +115,15 @@ export class RouteObject_<
   }
 
   get $reset(): RouteOperation_<TMergedState, TTransitionState> {
-    return this.$router._reset(this.$path, this._newStateMap);
+    return this.$router._reset(this.$path, this._stateMapUpdate);
   }
 
   get $push(): RouteOperation_<TMergedState, TTransitionState> {
-    return this.$router._push(this.$path, this._newStateMap);
+    return this.$router._push(this.$path, this._stateMapUpdate);
   }
 
   get $replace(): RouteOperation_<TMergedState, TTransitionState> {
-    return this.$router._replace(this.$path, this._newStateMap);
+    return this.$router._replace(this.$path, this._stateMapUpdate);
   }
 }
 
@@ -144,67 +137,12 @@ export interface Route_<
   (state: StateType<TSchema>): this;
 }
 
-export type RouteType_<
-  TSchema,
-  TViewDefinitionRecord,
-  TUpperMergedState,
-  TPath extends string[],
-  TTransitionState,
-> = Exclude<
-  Exclude<keyof TViewDefinitionRecord, '$view'>,
-  Exclude<keyof TSchema, `$${string}`>
-> extends infer TExtraViewKey extends string
-  ? [TExtraViewKey] extends [never]
-    ? OverrideObject_<
-        TUpperMergedState,
-        StateType<TSchema>
-      > extends infer TMergedState
-      ? ((
-          TViewDefinitionRecord extends {
-            $view: ViewBuilder_<unknown, infer TView>;
-          }
-            ? MultiOverrideObject_<
-                TMergedState,
-                [IView<TPath, TTransitionState>, TView]
-              >
-            : TViewDefinitionRecord extends {
-                $view: infer TViewBuilders extends ViewBuilder__[];
-              }
-            ? MultiOverrideObject_<
-                TMergedState,
-                [
-                  IView<TPath, TTransitionState>,
-                  ...{
-                    [TIndex in keyof TViewBuilders]: TViewBuilders[TIndex] extends ViewBuilder_<
-                      unknown,
-                      infer TView
-                    >
-                      ? TView
-                      : never;
-                  },
-                ]
-              >
-            : OverrideObject_<TMergedState, IView<TPath, TTransitionState>>
-        ) extends infer TView
-          ? TSchema extends {$exact: false}
-            ? RouteNode_<TSchema, TView, TPath>
-            : Route_<TSchema, TMergedState, TView, TPath, TTransitionState>
-          : never) & {
-          [TKey in Exclude<
-            Extract<keyof TSchema, string>,
-            `$${string}`
-          >]: RouteType_<
-            TSchema[TKey] extends infer TChildSchema extends object
-              ? TChildSchema
-              : {},
-            TViewDefinitionRecord extends Record<TKey, object>
-              ? TViewDefinitionRecord[TKey]
-              : {},
-            TMergedState,
-            [...TPath, TKey],
-            TTransitionState
-          >;
-        }
-      : never
-    : {TypeError: `Unexpected view key "${TExtraViewKey}"`}
-  : never;
+export interface RouteEntry {
+  path: string[];
+  stateMap: Map<number, object>;
+  previous: RouteEntry | undefined;
+  entering: number;
+  leaving: number;
+}
+
+function isMatched(): void {}

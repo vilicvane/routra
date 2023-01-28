@@ -1,31 +1,37 @@
-export function updateStateMapByPart(
+export function mergeStateMapWithPart(
   path: string[],
-  observableStateMap: Map<string, object>,
+  stateMap: Map<number, object>,
   statePart: object,
-): void {
-  const observableStateEntries = path
-    .map((key): [string, object] => [key, observableStateMap.get(key)!])
+): Map<number, object> {
+  const stateEntries = path
+    .map((_key, index): [number, object] => [index, stateMap.get(index)!])
     .reverse();
 
-  statePartKeyValue: for (const [statePartKey, value] of Object.entries(
-    statePart,
-  )) {
-    for (const [pathKey, observableState] of observableStateEntries) {
-      if (statePartKey in observableState) {
-        if (Reflect.set(observableState, statePartKey, value)) {
-          continue statePartKeyValue;
-        } else {
-          throw new Error(
-            `Failed to update value of ${JSON.stringify(
-              statePartKey,
-            )} in ${JSON.stringify(pathKey)}`,
-          );
-        }
+  const pendingStatePartMap = new Map(Object.entries(statePart));
+
+  const mergedStateMap = new Map<number, object>();
+
+  for (const [index, state] of stateEntries) {
+    const mergedState: Record<string, unknown> = {...state};
+
+    for (const [statePartKey, value] of pendingStatePartMap) {
+      if (statePartKey in state) {
+        mergedState[statePartKey] = value;
+
+        pendingStatePartMap.delete(statePartKey);
       }
     }
 
+    mergedStateMap.set(index, mergedState);
+  }
+
+  if (pendingStatePartMap.size > 0) {
     throw new Error(
-      `Failed to find value of ${JSON.stringify(statePartKey)} to update`,
+      `Failed to find value of ${Array.from(pendingStatePartMap.keys(), key =>
+        JSON.stringify(key),
+      ).join('/')} to update`,
     );
   }
+
+  return mergedStateMap;
 }

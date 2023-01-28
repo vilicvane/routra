@@ -85,6 +85,26 @@ const View = ({view}) => {
 };
 ```
 
+```tsx
+const router = routra({
+  $children: {},
+});
+
+const someView = routra.$view([router.login, router.inbox]);
+
+const App = () => {
+  return (
+    <>
+      <Route view={router.home.$exact.$view()} component={Home} />
+      <Route
+        view={routra.$view([router.login.$exact, router.inbox])}
+        component={BottomSheet}
+      />
+    </>
+  );
+};
+```
+
 ## License
 
 MIT License.

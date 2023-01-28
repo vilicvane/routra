@@ -13,3 +13,19 @@ export function getCommonStartOfTwoArray<T>(a: T[], b: T[]): T[] {
 
   return a.slice(0, index);
 }
+
+export function isArrayStartedWith<T>(target: T[], comparison: T[]): boolean {
+  if (target.length < comparison.length) {
+    return false;
+  }
+
+  let index = 0;
+
+  for (; index < comparison.length; index++) {
+    if (target[index] !== comparison[index]) {
+      return false;
+    }
+  }
+
+  return true;
+}

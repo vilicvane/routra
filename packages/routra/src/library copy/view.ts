@@ -1,15 +1,13 @@
 import type {SchemaRecord__, StateType} from './schema';
 import type {OverrideObject_} from './utils';
 
-// TODO: route entry?
+// TODO: rename route entry?
 export interface ViewEntry {
   id: number;
   path: string[];
   stateMap: Map<string, object>;
   mergedViews: object[];
   previous?: ViewEntry;
-  transition: boolean;
-  afterTransition: unknown;
   enteringSet: Set<object>;
   leavingSet: Set<object>;
 }
@@ -82,6 +80,6 @@ export interface IView<TPath extends string[], TTransitionState> {
   $id: number;
   $path: TPath;
   $exact: boolean;
-  $transition: TTransitionState | undefined;
-  $afterTransition: TTransitionState | undefined;
+  $entering: TTransitionState | undefined;
+  $leaving: TTransitionState | undefined;
 }

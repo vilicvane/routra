@@ -7,7 +7,6 @@ import type {ViewEntry} from './view';
 
 export function createTransition(
   targetEntry: ViewEntry,
-  transitionEntry: ViewEntry,
   newStatePart: object,
   observableTransitionState: IObservableValue<unknown>,
   setter: RouteOperationSetter,
@@ -17,7 +16,7 @@ export function createTransition(
     runInAction(() => {
       observableTransitionState.set(transitionState);
     });
-  }, new TransitionObject(targetEntry, transitionEntry, newStatePart, setter, abortHandler));
+  }, new TransitionObject(targetEntry, newStatePart, setter, abortHandler));
 }
 
 export interface Transition<TTransitionState> extends TransitionObject {
@@ -29,7 +28,6 @@ export type TransitionAbortHandler = () => void;
 export class TransitionObject {
   constructor(
     private targetEntry: ViewEntry,
-    private transitionEntry: ViewEntry,
     private newStatePart: object,
     private setter: RouteOperationSetter,
     private abortHandler: TransitionAbortHandler,

@@ -1,26 +1,23 @@
 import {runInAction} from 'mobx';
 
-import {mergeStateMapWithPart} from './@state';
-import type {RouteEntry} from './route';
-import type {RouteTarget, Router__} from './router';
+import {updateStateMapByPart} from './@state';
+import type {Router__} from './router';
 import type {Transition} from './transition';
+import type {ViewEntry} from './view';
 
-export type RouteOperationSetter = (entry: RouteEntry) => void;
+export type RouteOperationSetter = () => void;
 
 export function createRouteOperation(
   router: Router__,
-  options: RouteTarget,
+  targetEntry: ViewEntry,
+  setter: RouteOperationSetter,
 ): RouteOperation_<unknown, unknown> {
-  // E.g.: router.home.$push();
   return Object.setPrototypeOf((statePart: object = {}) => {
-    const {path, stateMap, previous} = options;
-
-    router._set({
-      path,
-      stateMap: mergeStateMapWithPart(path, stateMap, statePart),
-      previous,
+    runInAction(() => {
+      updateStateMapByPart(targetEntry.path, targetEntry.stateMap, statePart);
+      setter();
     });
-  }, new RouteOperationObject_(router, options));
+  }, new RouteOperationObject_(router, targetEntry, setter));
 }
 
 export interface RouteOperation_<TMergedState, TTransitionState>
@@ -29,14 +26,18 @@ export interface RouteOperation_<TMergedState, TTransitionState>
 }
 
 export class RouteOperationObject_<TMergedState, TTransitionState> {
-  constructor(private router: Router__, private options: RouteTarget) {}
+  constructor(
+    private router: Router__,
+    private targetEntry: ViewEntry,
+    private setter: RouteOperationSetter,
+  ) {}
 
   $transition(
     statePart: Partial<TMergedState> = {},
     transitionState?: TTransitionState,
   ): Transition<TTransitionState> {
     return this.router._transition(
-      this.options,
+      this.targetEntry,
       statePart,
       transitionState,
       this.setter,
@@ -46,7 +47,7 @@ export class RouteOperationObject_<TMergedState, TTransitionState> {
 
 export function createRouteBack(
   router: Router__,
-  targetEntry: RouteEntry,
+  targetEntry: ViewEntry,
   setter: RouteOperationSetter,
 ): RouteBack_<unknown> {
   return Object.setPrototypeOf((statePart: object = {}) => {
@@ -65,7 +66,7 @@ export interface RouteBack_<TTransitionState>
 export class RouteBackObject_<TTransitionState> {
   constructor(
     private router: Router__,
-    private targetEntry: RouteEntry,
+    private targetEntry: ViewEntry,
     private setter: RouteOperationSetter,
   ) {}
 
