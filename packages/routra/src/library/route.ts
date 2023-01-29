@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import {computed, makeObservable} from 'mobx';
 
+import type {StateType} from './@schema';
 import {getCommonStartOfTwoArray, isArrayStartedWith} from './@utils';
 import {RouteMatch} from './route-matched';
 import type {RouteOperation_} from './route-operation';
@@ -135,14 +136,6 @@ export interface Route_<
   TTransitionState,
 > extends RouteObject_<TMergedState, TView, TPath, TTransitionState> {
   (state: StateType<TSchema>): this;
-}
-
-export interface RouteEntry {
-  path: string[];
-  stateMap: Map<number, object>;
-  previous: RouteEntry | undefined;
-  entering: number;
-  leaving: number;
 }
 
 function isMatched(): void {}
