@@ -3,6 +3,7 @@ import {computed, makeObservable} from 'mobx';
 
 import type {StateType} from './@schema';
 import {getCommonStartOfTwoArray, isArrayStartedWith} from './@utils';
+import type {RouteEntry} from './route-entry';
 import {RouteMatch} from './route-matched';
 import type {RouteOperation_} from './route-operation';
 import type {Router__} from './router';
@@ -41,6 +42,8 @@ export class RouteNodeObject_<TView, TPath extends string[]> {
    */
   _exact = false;
 
+  _exactClone: this | undefined;
+
   constructor(
     readonly $router: Router__,
     {$children}: Schema,
@@ -65,7 +68,25 @@ export class RouteNodeObject_<TView, TPath extends string[]> {
     }
   }
 
-  get $active(): RouteMatch | false {
+  get $exact(): Omit<this, '$exact'> {
+    let clone = this._exactClone;
+
+    if (clone) {
+      return clone;
+    }
+
+    clone = Object.create(this, {
+      _exact: {
+        value: true,
+      },
+    }) as this;
+
+    this._exactClone = clone;
+
+    return clone;
+  }
+
+  get $active(): RouteEntry | false {
     const {$router} = this;
 
     const active = $router._requireActiveRouteEntry();
@@ -74,16 +95,23 @@ export class RouteNodeObject_<TView, TPath extends string[]> {
       return false;
     }
 
-    return new RouteMatch(active);
+    return active;
   }
 
-  @computed
-  get $exact(): this {
-    return Object.create(this, {
-      _exact: {
-        value: true,
-      },
-    });
+  get $transition(): RouteEntry | false {
+    const {$router} = this;
+
+    const transition = $router._transition?.entry;
+
+    if (!transition || !this._isMatched(transition)) {
+      return false;
+    }
+
+    return transition;
+  }
+
+  $view(): TView {
+    return createView([this]);
   }
 
   private _isMatched({path: entryPath}: RouteEntry): boolean {

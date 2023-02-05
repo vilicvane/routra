@@ -2,11 +2,12 @@ import {computed, makeObservable, observable, runInAction} from 'mobx';
 import {observer} from 'mobx-react';
 import type {ComponentType, ReactNode} from 'react';
 import React, {Component, createContext} from 'react';
-import type {IView__, RouteNode__, RouteView, View} from 'routra';
+import type {RouteNode__, View} from 'routra';
 import {createMergedObjectProxy} from 'routra';
 
 import type {MatchContextObject} from './@match-context';
 import {MatchContext} from './@match-context';
+import {RouteView} from './@route-view';
 import {routraReactOptions} from './options';
 
 const STABLE_OPTION_DEFAULT = false;
@@ -21,7 +22,6 @@ export interface RouteComponentLeaving {
 
 export interface RouteComponentProps<TRoute extends RouteNode__> {
   view: NonNullable<RouteView<TRoute>>;
-  leaving: RouteComponentLeaving | false;
 }
 
 export interface RouteProps<TRoute extends RouteNode__> {
@@ -44,15 +44,11 @@ export class Route<TRoute extends RouteNode__> extends Component<
   }
 
   override render(): ReactNode {
-    const {view, component: Component} = this.props;
+    const {view, component} = this.props;
 
-    const content = view.$entries.map(entry => {
-      return (
-        <RouteContext.Provider key={entry.$id} value={entry}>
-          <Component view={entry} />
-        </RouteContext.Provider>
-      );
-    });
+    const content = view.$entries.map(entry => (
+      <RouteView key={entry.$key} entry={entry} component={component} />
+    ));
 
     this.emptyContent = content.length === 0;
 

@@ -1,5 +1,5 @@
-import type {RouteEntry} from './route';
+import type {RouteEntry} from './route-entry';
 
 export class RouteMatch {
-  constructor(private entry: RouteEntry) {}
+  constructor(private entry: RouteEntry, readonly transition: boolean) {}
 }

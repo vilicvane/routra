@@ -1,18 +1,21 @@
 import type {IObservableValue} from 'mobx';
-import {observable, runInAction} from 'mobx';
+import {observable, runInAction, when} from 'mobx';
 
 import {getCommonStartOfTwoArray} from './@utils';
-import type {RouteEntry} from './route';
+import type {RouteTarget} from './route-entry';
+import {RouteEntry} from './route-entry';
 import type {RouteOperation_} from './route-operation';
 import {createRouteOperation} from './route-operation';
 import type {Schema} from './schema';
 
 export class Router_ {
+  /** @internal */
   @observable.ref
-  private _active: RouteEntry | undefined;
+  _active: RouteEntry | undefined;
 
+  /** @internal */
   @observable.ref
-  private _transition: TransitionEntry | undefined;
+  _transition: TransitionEntry | undefined;
 
   private readonly _queue: RouteTarget[] = [];
 
@@ -92,29 +95,31 @@ export class Router_ {
       return;
     }
 
-    const finish = (): void => {};
+    const active = this._active;
 
-    const transition = {
+    const transition = new RouteEntry(
+      this,
+      target.path,
+      target.stateMap,
+      target.previous,
+    );
+
+    const transitionEntry = {
       controlled: false,
-      entering: false,
-      entry: {
-        ...target,
-        entering: 0,
-        leaving: 0,
-      },
+      entry: transition,
     } satisfies TransitionEntry;
 
     runInAction(() => {
-      this._transition = transition;
+      this._transition = transitionEntry;
     });
 
+    // Wait initial render to register transition.
     setTimeout(() => {
-      if (transition.entering) {
-        // Managed by view.
-        return;
-      }
-
-      this._finishTransition();
+      void when(
+        () =>
+          (!active || !active.blockedByLeaving) &&
+          !transition.blockedByEntering,
+      ).then(() => this._finishTransition());
     });
   }
 
@@ -122,7 +127,7 @@ export class Router_ {
     const transition = this._transition;
 
     if (!transition) {
-      return;
+      throw new Error('Expected transition route entry');
     }
 
     runInAction(() => {
@@ -140,98 +145,6 @@ export class Router_ {
 }
 
 export type Router__ = Router_;
-
-function buildEntry(
-  path: string[],
-  observableStateMap: Map<string, object>,
-  previous: RouteEntry | undefined,
-): RouteEntry {
-  const mergedViews: object[] = [];
-
-  const shared = {
-    get $path(): string[] {
-      return path;
-    },
-  };
-
-  const observableStates: object[] = [];
-
-  const exactIndex = path.length - 1;
-
-  for (const [index, key] of path.entries()) {
-    observableStates.unshift(observableStateMap.get(key)!);
-
-    const orderedObservableStatesToKey = [
-      shared,
-      {
-        get $exact(): boolean {
-          return index === exactIndex;
-        },
-        get $entering(): unknown {},
-        get $leaving(): unknown {},
-      },
-      ...(transition ? [transition.newStatePart] : []),
-      ...observableStates,
-    ];
-
-    const mergedObservableState = createMergedObjectProxy(
-      orderedObservableStatesToKey,
-    );
-
-    const views = upperViews[key] ?? {};
-
-    const viewBuilderOption = views.$view ?? [];
-
-    const viewBuilders = (
-      Array.isArray(viewBuilderOption) ? viewBuilderOption : [viewBuilderOption]
-    )
-      .map((viewBuilder): FunctionViewBuilder__ => {
-        if (
-          // class has prototype writable false
-          Object.getOwnPropertyDescriptor(viewBuilder as any, 'prototype')
-            ?.writable === false
-        ) {
-          const ViewConstructor = viewBuilder as ClassViewBuilder__;
-          return state => new ViewConstructor(state);
-        } else {
-          return viewBuilder as FunctionViewBuilder__;
-        }
-      })
-      .reverse();
-
-    const builtViewComputedValues = viewBuilders.map(viewBuilder =>
-      computed(() => viewBuilder(mergedObservableState)),
-    );
-
-    const mergedViewComputedValue = createMergedObjectProxy(() => {
-      if (builtViewComputedValues.length === 0) {
-        return [mergedObservableState];
-      }
-
-      const views = builtViewComputedValues.map(computedValue =>
-        computedValue.get(),
-      );
-
-      return [...views, ...orderedObservableStatesToKey];
-    });
-
-    mergedViews.push(mergedViewComputedValue);
-
-    upperViews = views;
-  }
-
-  const entry: ViewEntry = {
-    id,
-    path,
-    stateMap: observableStateMap,
-    mergedViews,
-    previous,
-    enteringSet: observable.set(),
-    leavingSet: observable.set(),
-  };
-
-  return entry;
-}
 
 function buildStateMap(
   path: string[],
@@ -297,15 +210,5 @@ type TransitionEntry =
     }
   | {
       controlled: false;
-      /**
-       * True indicates entering being managed by view.
-       */
-      entering: boolean;
       entry: RouteEntry;
     };
-
-export interface RouteTarget {
-  path: string[];
-  stateMap: Map<number, object>;
-  previous: RouteEntry | undefined;
-}

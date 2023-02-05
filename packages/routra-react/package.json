@@ -10,6 +10,7 @@
     "require": "./bld/library/index.js"
   },
   "dependencies": {
+    "react-use-event-hook": "^0.9.3",
     "routra": "^0.1.3",
     "tslib": "^2.4.1"
   },

@@ -18,9 +18,24 @@ const App = () => {
 };
 
 // 两种处理 animation/transition end 的方式：
-// 1. <Route /> 通过传入 routra-enter routra-leave 的 className 判断事件的 target 并自动处理
-const FooBar = ({className, route}) => {
-  return <Wrapper className={className}>{}</Wrapper>;
+// 🙅 1. <Route /> 通过传入 routra-enter routra-leave 的 className 判断事件的 target 并自动处理
+// 这种不行，因为外面的 Route 组件没法直接监听内部事件（没有 DOM）
+// const FooBar = ({className, route}) => {
+//   return <Wrapper className={className}>{}</Wrapper>;
+// };
+// 1.
+const FooBar = ({view}) => {
+  return <Wrapper {...transition.events}>{}</Wrapper>;
+
+  return (
+    <Wrapper
+      {...transition.events.compose({
+        onClick: () => {},
+      })}
+    >
+      {}
+    </Wrapper>
+  );
 };
 
 // 2. 使用时不传递 className，手动触发相关函数
