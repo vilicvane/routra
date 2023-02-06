@@ -1,18 +1,35 @@
 import {observable, runInAction} from 'mobx';
 
-import type {Router__} from './router';
+import {createMergedObjectProxy} from '../@utils';
+import type {Router__} from '../router';
 
 export class RouteEntry {
   private enteringSet = observable.set<object>();
 
   private leavingSet = observable.set<object>();
 
+  readonly mergedState: object;
+
   constructor(
     readonly router: Router__,
     readonly path: string[],
     readonly stateMap: Map<number, object>,
     readonly previous: RouteTarget | undefined,
-  ) {}
+  ) {
+    this.mergedState = createMergedObjectProxy(
+      Array.from(path.keys(), index => stateMap.get(index))
+        .filter((state): state is object => state !== undefined)
+        .reverse(),
+    );
+  }
+
+  get target(): RouteTarget {
+    return {
+      path: this.path,
+      stateMap: this.stateMap,
+      previous: this.previous,
+    };
+  }
 
   get blockedByEntering(): boolean {
     return this.enteringSet.size > 0;
@@ -27,7 +44,7 @@ export class RouteEntry {
   }
 
   get transition(): boolean {
-    return this === this.router._transition;
+    return this === this.router._transition?.target;
   }
 
   get switchingFrom(): boolean {

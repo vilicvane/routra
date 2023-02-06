@@ -2,7 +2,7 @@ import {computed, makeObservable, observable, runInAction} from 'mobx';
 import {observer} from 'mobx-react';
 import type {ComponentType, ReactNode} from 'react';
 import React, {Component, createContext} from 'react';
-import type {RouteNode__, View} from 'routra';
+import type {RouteNode__, ViewType} from 'routra';
 import {createMergedObjectProxy} from 'routra';
 
 import type {MatchContextObject} from './@match-context';
@@ -25,7 +25,7 @@ export interface RouteComponentProps<TRoute extends RouteNode__> {
 }
 
 export interface RouteProps<TRoute extends RouteNode__> {
-  view: View;
+  view: ViewType;
   component: ComponentType<RouteComponentProps<TRoute>>;
 }
 

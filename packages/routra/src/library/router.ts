@@ -1,21 +1,29 @@
 import type {IObservableValue} from 'mobx';
 import {observable, runInAction, when} from 'mobx';
 
+import type {ChildSchemaFallback_, SchemaChildrenType_} from './@schema';
 import {getCommonStartOfTwoArray} from './@utils';
-import type {RouteTarget} from './route-entry';
-import {RouteEntry} from './route-entry';
-import type {RouteOperation_} from './route-operation';
-import {createRouteOperation} from './route-operation';
+import type {
+  RouteOperation_,
+  RouteSwitching,
+  RouteTarget,
+  RouteType_,
+} from './route';
+import {RouteEntry, createRouteOperation, createRouteSwitching} from './route';
 import type {Schema} from './schema';
 
-export class Router_ {
+export interface RouterOptions<TSwitchingState> {
+  defaultSwitchingState: TSwitchingState;
+}
+
+export class Router_<TSwitchingState> {
   /** @internal */
   @observable.ref
   _active: RouteEntry | undefined;
 
   /** @internal */
   @observable.ref
-  _transition: RouteEntry | undefined;
+  _transition: TransitionEntry | undefined;
 
   /** @internal */
   @observable.ref
@@ -23,8 +31,12 @@ export class Router_ {
 
   private readonly _queue: RouteTarget[] = [];
 
-  constructor(private _schema: Schema) {}
+  constructor(
+    private _schema: Schema,
+    private _options: RouterOptions<TSwitchingState>,
+  ) {}
 
+  /** @internal */
   _reset(
     path: string[],
     stateMapUpdate: Map<number, object>,
@@ -36,13 +48,14 @@ export class Router_ {
       this._schema,
     );
 
-    return createRouteOperation(this, {
+    return createRouteOperation(this, 'reset', {
       path,
       stateMap,
       previous: undefined,
     });
   }
 
+  /** @internal */
   _push(
     path: string[],
     stateMapUpdate: Map<number, object>,
@@ -51,13 +64,14 @@ export class Router_ {
 
     const stateMap = buildStateMap(path, stateMapUpdate, active, this._schema);
 
-    return createRouteOperation(this, {
+    return createRouteOperation(this, 'push', {
       path,
       stateMap,
-      previous: active,
+      previous: active.target,
     });
   }
 
+  /** @internal */
   _replace(
     path: string[],
     stateMapUpdate: Map<number, object>,
@@ -66,23 +80,64 @@ export class Router_ {
 
     const stateMap = buildStateMap(path, stateMapUpdate, active, this._schema);
 
-    return createRouteOperation(this, {
+    return createRouteOperation(this, 'replace', {
       path,
       stateMap,
       previous: active.previous,
     });
   }
 
-  /**
-   * @internal
-   */
-  _set(target: RouteTarget): void {
-    this._startTransition(target);
+  /** @internal */
+  _switch(
+    operation: RouterOperation,
+    {path, stateMap, previous}: RouteTarget,
+    switchingState: unknown,
+  ): RouteSwitching<unknown> {
+    const ref = {};
+
+    const switchingStateObservable = observable.box(
+      switchingState ?? this._options.defaultSwitchingState,
+    );
+
+    const switching = new RouteEntry(this, path, stateMap, previous);
+
+    runInAction(() => {
+      this._switching = {
+        operation,
+        to: switching,
+        switchingStateObservable,
+        ref,
+      };
+    });
+
+    return createRouteSwitching(this, switchingStateObservable, ref);
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
+  _completeSwitching(ref: object): void {
+    const switching = this._requireSwitching(ref);
+
+    runInAction(() => {
+      this._active = switching.to;
+      this._switching = undefined;
+    });
+  }
+
+  /** @internal */
+  _abortSwitching(ref: object): void {
+    this._requireSwitching(ref);
+
+    runInAction(() => {
+      this._switching = undefined;
+    });
+  }
+
+  /** @internal */
+  _set(operation: RouterOperation, target: RouteTarget): void {
+    this._startTransition(operation, target);
+  }
+
+  /** @internal */
   _requireActiveRouteEntry(): RouteEntry {
     const entry = this._active;
 
@@ -93,7 +148,10 @@ export class Router_ {
     return entry;
   }
 
-  private _startTransition(target: RouteTarget): void {
+  private _startTransition(
+    operation: RouterOperation,
+    target: RouteTarget,
+  ): void {
     if (this._transition) {
       this._queue.push(target);
       return;
@@ -109,7 +167,10 @@ export class Router_ {
     );
 
     runInAction(() => {
-      this._transition = transition;
+      this._transition = {
+        operation,
+        target: transition,
+      };
     });
 
     // Wait initial render to register transition.
@@ -118,11 +179,11 @@ export class Router_ {
         () =>
           (!active || !active.blockedByLeaving) &&
           !transition.blockedByEntering,
-      ).then(() => this._finishTransition());
+      ).then(() => this._finishTransition(operation));
     });
   }
 
-  private _finishTransition(): void {
+  private _finishTransition(operation: RouterOperation): void {
     const transition = this._transition;
 
     if (!transition) {
@@ -130,20 +191,34 @@ export class Router_ {
     }
 
     runInAction(() => {
-      this._active = transition;
+      this._active = transition.target;
 
       this._transition = undefined;
 
       const next = this._queue.shift();
 
       if (next) {
-        this._startTransition(next);
+        this._startTransition(operation, next);
       }
     });
   }
+
+  private _requireSwitching(ref: object): SwitchingEntry {
+    const switching = this._switching;
+
+    if (!switching) {
+      throw new Error('No switching route entry');
+    }
+
+    if (ref !== switching.ref) {
+      throw new Error('Switching does not match');
+    }
+
+    return switching;
+  }
 }
 
-export type Router__ = Router_;
+export type Router__ = Router_<unknown>;
 
 function buildStateMap(
   path: string[],
@@ -201,8 +276,31 @@ function buildStateMap(
   return stateMap;
 }
 
-/** @internal */
-export interface SwitchingEntry {
-  switchingStateObservable: IObservableValue<unknown>;
-  to: RouteEntry;
+export type RouterOperation = 'reset' | 'push' | 'replace' | 'back';
+
+export interface TransitionEntry {
+  operation: RouterOperation;
+  target: RouteEntry;
 }
+
+export interface SwitchingEntry {
+  operation: RouterOperation;
+  to: RouteEntry;
+  switchingStateObservable: IObservableValue<unknown>;
+  ref: object;
+}
+
+export type Router<
+  TSchema extends Schema,
+  TSwitchingState,
+> = Router_<TSwitchingState> &
+  (SchemaChildrenType_<TSchema> extends infer TSchemaRecord
+    ? {
+        [TKey in Extract<keyof TSchemaRecord, string>]: RouteType_<
+          ChildSchemaFallback_<TSchemaRecord[TKey]>,
+          TSwitchingState,
+          {},
+          [TKey]
+        >;
+      }
+    : never);

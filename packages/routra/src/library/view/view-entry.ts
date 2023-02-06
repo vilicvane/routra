@@ -1,6 +1,10 @@
 import {autorun, makeObservable, observable, runInAction} from 'mobx';
 
-abstract class ViewEntry {
+import type {RouteMergedState_, Route__} from '../route';
+
+import type {ViewRouteMatch, ViewRouteMatch__} from './view';
+
+abstract class ViewEntryClass<TRoute extends Route__> {
   readonly $key = getNextViewEntryKey();
 
   @observable
@@ -71,6 +75,16 @@ abstract class ViewEntry {
     };
   }
 
+  get $match(): TRoute {
+    return this._match.route;
+  }
+
+  abstract get _match(): ViewRouteMatch<TRoute>;
+
+  protected abstract get _entering(): boolean;
+
+  protected abstract get _leaving(): boolean;
+
   $transition({entering, leaving}: ViewEntryRegisterTransitionOptions): void {
     runInAction(() => {
       this._enteringEnabled = entering;
@@ -83,15 +97,15 @@ abstract class ViewEntry {
     this._autorunDisposer();
   }
 
-  protected abstract get _entering(): boolean;
-
-  protected abstract get _leaving(): boolean;
-
   protected abstract _autorunUpdateTransitionBlock(): void;
 }
 
-export const AbstractViewEntry = ViewEntry;
-export type IViewEntry = ViewEntry;
+export const AbstractViewEntry = ViewEntryClass;
+
+export type IViewEntry<TRoute extends Route__> = ViewEntryClass<TRoute>;
+
+export type ViewEntry<TRoute extends Route__> = ViewEntryClass<TRoute> &
+  RouteMergedState_<TRoute>;
 
 export interface ViewEntryRegisterTransitionOptions {
   entering: boolean;

@@ -1,15 +1,16 @@
 import {computed, runInAction} from 'mobx';
 
-import type {RouteEntry} from '../route-entry';
+import type {RouteEntry, Route__} from '../route';
 
+import type {ViewRouteMatch__} from './view';
 import {AbstractView} from './view';
 import {AbstractViewEntry} from './view-entry';
 
-export class SingleView extends AbstractView {
-  private _entry: SingleViewEntry | undefined;
+export class SingleView__ extends AbstractView<Route__> {
+  private _entry: SingleViewEntry__ | undefined;
 
   @computed
-  get $entries(): SingleViewEntry[] {
+  get _entries(): SingleViewEntry__[] {
     let entry = this._entry;
 
     if (this._matches.length === 0) {
@@ -20,7 +21,7 @@ export class SingleView extends AbstractView {
       }
     } else {
       if (!entry) {
-        entry = new SingleViewEntry(this);
+        entry = new SingleViewEntry__(this);
         this._entry = entry;
       }
     }
@@ -29,12 +30,17 @@ export class SingleView extends AbstractView {
   }
 }
 
-export class SingleViewEntry extends AbstractViewEntry {
+export class SingleViewEntry__ extends AbstractViewEntry<Route__> {
   private _blockedActive: RouteEntry | undefined;
   private _blockedTransition: RouteEntry | undefined;
 
-  constructor(private _view: SingleView) {
+  constructor(private _view: SingleView__) {
     super();
+  }
+
+  /** @internal */
+  get _match(): ViewRouteMatch__ {
+    return (this._active ?? this._transition)!;
   }
 
   protected get _entering(): boolean {
@@ -47,17 +53,17 @@ export class SingleViewEntry extends AbstractViewEntry {
   protected get _leaving(): boolean {
     const active = this._active;
 
-    return active !== undefined && active.leaving;
+    return active !== undefined && active.entry.leaving;
   }
 
   @computed
-  private get _active(): RouteEntry | undefined {
-    return this._view._matches.find(match => match.active);
+  private get _active(): ViewRouteMatch__ | undefined {
+    return this._view._matches.find(match => match.entry.active);
   }
 
   @computed
-  private get _transition(): RouteEntry | undefined {
-    return this._view._matches.find(match => match.transition);
+  private get _transition(): ViewRouteMatch__ | undefined {
+    return this._view._matches.find(match => match.entry.transition);
   }
 
   /** @internal */
@@ -89,8 +95,8 @@ export class SingleViewEntry extends AbstractViewEntry {
     const blockedActive = this._blockedActive;
     const blockedTransition = this._blockedTransition;
 
-    const active = this._active;
-    const transition = this._transition;
+    const active = this._active?.entry;
+    const transition = this._transition?.entry;
 
     const enteringEnabled = this._enteringEnabled;
     const leavingEnabled = this._leavingEnabled;

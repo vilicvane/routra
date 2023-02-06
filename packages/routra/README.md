@@ -66,7 +66,22 @@ const FooBar = ({className, route}) => {
 为了避免混淆，手动控制的叫做 switch。
 
 ```ts
-const switching = route.foo.bar.$push.$switch({
+const router = routra({
+  $children: {
+    foo: {
+      $children: {
+        bar: {
+          $switchingState: {
+            progress: 0,
+          },
+        },
+      },
+    },
+  },
+  },
+});
+
+const switching = router.foo.bar.$push.$switch({
   progress: 0,
 });
 
