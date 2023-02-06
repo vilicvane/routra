@@ -1,237 +1,166 @@
-import {autorun, computed, observable, runInAction} from 'mobx';
+import {computed, runInAction} from 'mobx';
 
-import type {Route__} from '../route';
 import type {RouteEntry} from '../route-entry';
 
-import type {
-  IViewEntry,
-  IViewTransition,
-  ViewEntryRegisterTransitionOptions,
-} from './view';
-import {AbstractView, getNextViewEntryKey} from './view';
+import {AbstractView} from './view';
+import {AbstractViewEntry} from './view-entry';
 
 export class SingleView extends AbstractView {
-  @observable.ref
   private _entry: SingleViewEntry | undefined;
 
-  constructor(routes: Route__[]) {
-    super(routes);
-
-    autorun(() => {
-      const matches = this.matches;
-
-      let entry = this._entry;
-
-      if (matches.length === 0) {
-        if (entry) {
-          runInAction(() => {
-            entry!._dispose();
-            this._entry = undefined;
-          });
-        }
-      } else {
-        const active = matches.find(match => match.active);
-
-        const transition = matches.find(match => !match.active);
-
-        runInAction(() => {
-          if (!entry) {
-            entry = new SingleViewEntry();
-            this._entry = entry;
-          }
-
-          entry._update(active, transition);
-        });
-      }
-    });
-  }
-
+  @computed
   get $entries(): SingleViewEntry[] {
-    const entry = this._entry;
+    let entry = this._entry;
+
+    if (this._matches.length === 0) {
+      if (entry) {
+        entry._dispose();
+        entry = undefined;
+        this._entry = undefined;
+      }
+    } else {
+      if (!entry) {
+        entry = new SingleViewEntry(this);
+        this._entry = entry;
+      }
+    }
 
     return entry ? [entry] : [];
   }
 }
 
-export class SingleViewEntry implements IViewEntry {
-  readonly $key = getNextViewEntryKey();
+export class SingleViewEntry extends AbstractViewEntry {
+  private _blockedActive: RouteEntry | undefined;
+  private _blockedTransition: RouteEntry | undefined;
 
-  private _enteringEnabled = false;
-  private _leavingEnabled = false;
-
-  private _entered = false;
-  private _left = false;
-
-  private _active: RouteEntry | undefined;
-
-  private _transition: RouteEntry | undefined;
-
-  private _viewTransition: IViewTransition | undefined;
-
-  $transition(): IViewTransition {
-    let viewTransition = this._viewTransition;
-
-    if (!viewTransition) {
-      const that = this;
-
-      viewTransition = observable(
-        {
-          get entering() {
-            const active = that._active;
-            const transition = that._transition;
-
-            if (!active && transition) {
-              return {
-                complete() {
-                  if (!that._enteringEnabled) {
-                    throw new Error('Entering transition is not enabled');
-                  }
-
-                  if (that._entered) {
-                    return;
-                  }
-
-                  that._entered = true;
-
-                  runInAction(() => {
-                    transition.updateTransitionBlock(that, {
-                      entering: false,
-                      leaving: false,
-                    });
-                  });
-                },
-              };
-            }
-
-            return false;
-          },
-          get leaving() {
-            const active = that._active;
-            const transition = that._transition;
-
-            if (active && !transition && active.leaving) {
-              return {
-                complete() {
-                  if (!that._leavingEnabled) {
-                    throw new Error('Leaving transition is not enabled');
-                  }
-
-                  if (that._left) {
-                    return;
-                  }
-
-                  that._left = true;
-
-                  runInAction(() => {
-                    active.updateTransitionBlock(that, {
-                      entering: false,
-                      leaving: false,
-                    });
-                  });
-                },
-              };
-            }
-
-            return false;
-          },
-          register({entering = false, leaving = false}) {
-            that._registerTransition({entering, leaving});
-          },
-        },
-        {
-          entering: computed,
-          leaving: computed,
-        },
-      );
-    }
-
-    return viewTransition;
+  constructor(private _view: SingleView) {
+    super();
   }
 
-  _registerTransition({
-    entering,
-    leaving,
-  }: ViewEntryRegisterTransitionOptions): void {
-    this._enteringEnabled = entering;
-    this._leavingEnabled = leaving;
+  protected get _entering(): boolean {
+    const active = this._active;
+    const transition = this._transition;
 
-    runInAction(() => {
-      this._updateTransitionBlock(this._active, this._transition);
-    });
+    return active === undefined && transition !== undefined;
+  }
+
+  protected get _leaving(): boolean {
+    const active = this._active;
+
+    return active !== undefined && active.leaving;
+  }
+
+  @computed
+  private get _active(): RouteEntry | undefined {
+    return this._view._matches.find(match => match.active);
+  }
+
+  @computed
+  private get _transition(): RouteEntry | undefined {
+    return this._view._matches.find(match => match.transition);
   }
 
   /** @internal */
-  _update(
-    active: RouteEntry | undefined,
-    transition: RouteEntry | undefined,
-  ): void {
+  override _dispose(): void {
+    super._dispose();
+
     runInAction(() => {
-      this._active?.updateTransitionBlock(this, {
-        entering: false,
-        leaving: false,
-      });
+      if (this._blockedActive) {
+        this._blockedActive.updateTransitionBlock(this, {
+          entering: false,
+          leaving: false,
+        });
 
-      this._transition?.updateTransitionBlock(this, {
-        entering: false,
-        leaving: false,
-      });
+        this._blockedActive = undefined;
+      }
 
-      this._active = active;
-      this._transition = transition;
+      if (this._blockedTransition) {
+        this._blockedTransition.updateTransitionBlock(this, {
+          entering: false,
+          leaving: false,
+        });
 
-      this._updateTransitionBlock(active, transition);
+        this._blockedTransition = undefined;
+      }
     });
   }
 
-  _dispose(): void {
+  protected _autorunUpdateTransitionBlock(): void {
+    const blockedActive = this._blockedActive;
+    const blockedTransition = this._blockedTransition;
+
+    const active = this._active;
+    const transition = this._transition;
+
+    const enteringEnabled = this._enteringEnabled;
+    const leavingEnabled = this._leavingEnabled;
+
+    const entered = this._entered;
+    const left = this._left;
+
     runInAction(() => {
-      this._active?.updateTransitionBlock(this, {
-        entering: false,
-        leaving: false,
-      });
+      if (blockedActive && blockedActive !== active) {
+        blockedActive.updateTransitionBlock(this, {
+          entering: false,
+          leaving: false,
+        });
+      }
 
-      this._transition?.updateTransitionBlock(this, {
-        entering: false,
-        leaving: false,
-      });
+      if (
+        blockedTransition &&
+        blockedTransition !== transition &&
+        blockedTransition !== active
+      ) {
+        blockedTransition.updateTransitionBlock(this, {
+          entering: false,
+          leaving: false,
+        });
+      }
 
-      this._active = undefined;
-      this._transition = undefined;
-    });
-  }
+      this._blockedActive = undefined;
+      this._blockedTransition = undefined;
 
-  private _updateTransitionBlock(
-    active: RouteEntry | undefined,
-    transition: RouteEntry | undefined,
-  ): void {
-    if (active && transition) {
-      // Transition going on, but treated as stable for single view.
+      if (active && transition) {
+        // Transition going on, but treated as stable for single view.
 
-      active.updateTransitionBlock(this, {
-        entering: false,
-        leaving: false,
-      });
+        active.updateTransitionBlock(this, {
+          entering: false,
+          leaving: false,
+        });
 
-      transition.updateTransitionBlock(this, {
-        entering: false,
-        leaving: false,
-      });
-    } else if (active) {
-      // Stable or leaving.
+        transition.updateTransitionBlock(this, {
+          entering: false,
+          leaving: false,
+        });
+      } else if (active) {
+        // Stable or leaving.
 
-      active.updateTransitionBlock(this, {
-        entering: false,
         // Make sure to not block route if already left.
-        leaving: this._leavingEnabled && !this._left,
-      });
-    } else if (transition) {
-      // Entering.
+        const blocked = leavingEnabled && !left;
 
-      transition.updateTransitionBlock(this, {
+        if (blocked) {
+          this._blockedActive = active;
+        }
+
+        active.updateTransitionBlock(this, {
+          entering: false,
+          leaving: blocked,
+        });
+      } else if (transition) {
+        // Entering.
+
         // Make sure to not block route if already entered.
-        entering: this._enteringEnabled && !this._entered,
-        leaving: false,
-      });
-    }
+        const blocked = enteringEnabled && !entered;
+
+        if (blocked) {
+          this._blockedTransition = transition;
+        }
+
+        transition.updateTransitionBlock(this, {
+          entering: blocked,
+          leaving: false,
+        });
+      }
+    });
   }
 }

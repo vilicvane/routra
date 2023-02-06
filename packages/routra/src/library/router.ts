@@ -15,7 +15,11 @@ export class Router_ {
 
   /** @internal */
   @observable.ref
-  _transition: TransitionEntry | undefined;
+  _transition: RouteEntry | undefined;
+
+  /** @internal */
+  @observable.ref
+  _switching: SwitchingEntry | undefined;
 
   private readonly _queue: RouteTarget[] = [];
 
@@ -104,13 +108,8 @@ export class Router_ {
       target.previous,
     );
 
-    const transitionEntry = {
-      controlled: false,
-      entry: transition,
-    } satisfies TransitionEntry;
-
     runInAction(() => {
-      this._transition = transitionEntry;
+      this._transition = transition;
     });
 
     // Wait initial render to register transition.
@@ -131,7 +130,7 @@ export class Router_ {
     }
 
     runInAction(() => {
-      this._active = transition.entry;
+      this._active = transition;
 
       this._transition = undefined;
 
@@ -202,13 +201,8 @@ function buildStateMap(
   return stateMap;
 }
 
-type TransitionEntry =
-  | {
-      controlled: true;
-      transitionStateObservable: IObservableValue<unknown>;
-      entry: RouteEntry;
-    }
-  | {
-      controlled: false;
-      entry: RouteEntry;
-    };
+/** @internal */
+export interface SwitchingEntry {
+  switchingStateObservable: IObservableValue<unknown>;
+  to: RouteEntry;
+}

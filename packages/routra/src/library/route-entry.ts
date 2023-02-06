@@ -23,11 +23,23 @@ export class RouteEntry {
   }
 
   get active(): boolean {
-    return this.router._active === this;
+    return this === this.router._active;
+  }
+
+  get transition(): boolean {
+    return this === this.router._transition;
+  }
+
+  get switchingFrom(): boolean {
+    return this.active && this.router._switching !== undefined;
+  }
+
+  get switchingTo(): boolean {
+    return this === this.router._switching?.to;
   }
 
   get leaving(): boolean {
-    return this.active && !!this.router._transition;
+    return this.active && this.router._transition !== undefined;
   }
 
   updateTransitionBlock(

@@ -63,18 +63,18 @@ const FooBar = ({className, route}) => {
 };
 ```
 
-transition 有两种形式，controlled 和 uncontrolled。
+为了避免混淆，手动控制的叫做 switch。
 
 ```ts
-const transition = route.foo.bar.$push.$transition({
+const switching = route.foo.bar.$push.$switch({
   progress: 0,
 });
 
-transition({
+switching({
   progress: 0.1,
 });
 
-transition.$complete();
+switching.$complete();
 ```
 
 另一种就是由 view 处理的。
@@ -83,7 +83,7 @@ view 在加载时可以注册一个或多个 enter 和 leave，路由切换会�
 
 ```tsx
 const View = ({view}) => {
-  const [{$enter, $leave}] = useState(() =>
+  useState(() =>
     view.$transition({
       enter: true,
       leave: true,
@@ -91,11 +91,8 @@ const View = ({view}) => {
   );
 
   useEffect(() => {
-    $enter.$complete();
-
-    return () => {
-      $leave.$complete();
-    };
+    view.$enter.$complete();
+    view.$leave.$complete();
   }, []);
 };
 ```
