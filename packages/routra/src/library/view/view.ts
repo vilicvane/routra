@@ -1,7 +1,7 @@
 import {computed, makeObservable} from 'mobx';
 
 import {createMergedObjectProxy} from '../@utils';
-import type {RouteEntry, RouteNode__, Route__} from '../route';
+import type {RouteEntry, RouteNode__} from '../route';
 
 import type {IViewEntry, ViewEntry} from './view-entry';
 
@@ -46,10 +46,12 @@ abstract class View<TRoute extends RouteNode__> {
       .flatMap((route): (ViewRouteMatch<TRoute> | undefined)[] => {
         const active = route._active;
         const transition = route._transition;
+        const switching = route._switching;
 
         return [
           active && {route, entry: active},
           transition && {route, entry: transition},
+          switching && {route, entry: switching},
         ];
       })
       .filter((match): match is ViewRouteMatch<TRoute> => match !== undefined);

@@ -1,5 +1,5 @@
 import type {IObservableValue} from 'mobx';
-import {observable, runInAction, when} from 'mobx';
+import {makeObservable, observable, runInAction, when} from 'mobx';
 
 import type {ChildSchemaFallback_, SchemaChildrenType_} from './@schema';
 import {getCommonStartOfTwoArray} from './@utils';
@@ -9,7 +9,12 @@ import type {
   RouteTarget,
   RouteType_,
 } from './route';
-import {RouteEntry, createRouteOperation, createRouteSwitching} from './route';
+import {
+  RouteEntry,
+  createRoute,
+  createRouteOperation,
+  createRouteSwitching,
+} from './route';
 import type {Schema} from './schema';
 
 export interface RouterOptions<TSwitchingState> {
@@ -34,7 +39,26 @@ export class Router_<TSwitchingState> {
   constructor(
     private _schema: Schema,
     private _options: RouterOptions<TSwitchingState>,
-  ) {}
+  ) {
+    makeObservable(this);
+
+    const {$children} = _schema;
+
+    if ($children) {
+      for (let [key, childSchema] of Object.entries($children)) {
+        if (childSchema === true) {
+          childSchema = {};
+        }
+
+        (this as any)[key] = createRoute(
+          this,
+          childSchema as Schema,
+          [key],
+          new Map(),
+        );
+      }
+    }
+  }
 
   /** @internal */
   _reset(

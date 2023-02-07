@@ -85,11 +85,27 @@ export function createMergedObjectProxy(
 
         return false;
       },
+      getPrototypeOf(_target) {
+        const prototypes = objectsComputed
+          .get()
+          .map(object => Reflect.getPrototypeOf(object))
+          .filter((prototype): prototype is object => prototype !== null);
+
+        if (prototypes.length === 0) {
+          return null;
+        } else {
+          return createMergedObjectProxy(prototypes);
+        }
+      },
       getOwnPropertyDescriptor(_target, key) {
         for (const object of objectsComputed.get()) {
           const descriptor = Reflect.getOwnPropertyDescriptor(object, key);
 
           if (descriptor) {
+            if (descriptor.configurable === false) {
+              descriptor.configurable = true;
+            }
+
             return descriptor;
           }
         }

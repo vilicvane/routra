@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import {makeObservable} from 'mobx';
+import {computed, makeObservable} from 'mobx';
 
 import type {
   ChildSchemaFallback_,
@@ -98,11 +98,25 @@ export class RouteNodeClass_<
     return clone;
   }
 
+  get $matched(): boolean {
+    return this.$active || this.$transition || this.$switching;
+  }
+
   get $active(): boolean {
     return this._active !== undefined;
   }
 
+  get $transition(): boolean {
+    return this._transition !== undefined;
+  }
+
+  get $switching(): boolean {
+    return this._switching !== undefined;
+  }
+
   /** @internal */
+
+  @computed
   get _active(): RouteEntry | undefined {
     const {$router} = this;
 
@@ -116,6 +130,7 @@ export class RouteNodeClass_<
   }
 
   /** @internal */
+  @computed
   get _transition(): RouteEntry | undefined {
     const {$router} = this;
 
@@ -126,6 +141,20 @@ export class RouteNodeClass_<
     }
 
     return transition;
+  }
+
+  /** @internal */
+  @computed
+  get _switching(): RouteEntry | undefined {
+    const {$router} = this;
+
+    const switching = $router._switching?.to;
+
+    if (!switching || !this._isMatched(switching)) {
+      return undefined;
+    }
+
+    return switching;
   }
 
   $view(
