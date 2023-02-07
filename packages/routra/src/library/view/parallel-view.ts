@@ -1,12 +1,12 @@
 import {computed, runInAction} from 'mobx';
 
-import type {RouteEntry, Route__} from '../route';
+import type {RouteEntry, RouteNode__} from '../route';
 
 import type {ViewRouteMatch__} from './view';
 import {AbstractView} from './view';
 import {AbstractViewEntry} from './view-entry';
 
-export class ParallelView__ extends AbstractView<Route__> {
+export class ParallelView__ extends AbstractView<RouteNode__> {
   private _routeEntryToViewEntryMap = new Map<
     RouteEntry,
     ParallelViewEntry__
@@ -46,7 +46,7 @@ export class ParallelView__ extends AbstractView<Route__> {
   }
 }
 
-export class ParallelViewEntry__ extends AbstractViewEntry<Route__> {
+export class ParallelViewEntry__ extends AbstractViewEntry<RouteNode__> {
   /** @internal */
   readonly _match: ViewRouteMatch__;
 

@@ -2,27 +2,23 @@ import type {
   AnimationEvent,
   AnimationEventHandler,
   ComponentType,
-  FunctionComponent,
+  ReactElement,
 } from 'react';
-import React, {Fragment, useEffect, useState} from 'react';
+import React, {useState} from 'react';
 import useEvent from 'react-use-event-hook';
-import type {IViewEntry} from 'routra';
+import type {RouteNode__, ViewEntry} from 'routra';
 
-import {RouteContext} from './route';
+import type {RouteComponentProps} from './route';
 
-export interface RouteViewProps {
-  entry: IViewEntry;
-  component: ComponentType<RouteViewComponentProps>;
+export interface RouteViewProps<TRoute extends RouteNode__> {
+  entry: ViewEntry<TRoute>;
+  component: ComponentType<RouteComponentProps<TRoute>>;
 }
 
-export const RouteView: FunctionComponent<RouteViewProps> = ({
+export const RouteView = <TRoute extends RouteNode__>({
   entry,
   component: Component,
-}) => {
-  const [transition] = useState(() => entry.$transition());
-
-  useEffect(() => () => transition.unregister(), [transition]);
-
+}: RouteViewProps<TRoute>): ReactElement => {
   const onAnimationEnd = useEvent(({target, currentTarget}: AnimationEvent) => {
     if (
       target !== currentTarget &&
@@ -31,31 +27,25 @@ export const RouteView: FunctionComponent<RouteViewProps> = ({
       return;
     }
 
-    if (transition.entering) {
-      transition.entering.complete();
-    } else if (transition.leaving) {
-      transition.leaving.complete();
+    const {$entering, $leaving} = entry;
+
+    if ($entering) {
+      $entering.complete();
+    } else if ($leaving) {
+      $leaving.complete();
     }
   });
 
-  const [extendedTransition] = useState(() => {
-    return Object.create(transition as RouteViewComponentTransition, {
+  const [transition] = useState(() => {
+    return {
       events: {
-        value: {
-          onAnimationEnd,
-        },
-        writable: false,
+        onAnimationEnd,
       },
-    });
+    };
   });
 
-  return <Component view={entry} transition={extendedTransition} />;
+  return <Component view={entry} transition={transition} />;
 };
-
-export interface RouteViewComponentProps {
-  view: ViewEntry;
-  transition: RouteViewComponentTransition;
-}
 
 export interface RouteViewComponentTransition {
   events: {

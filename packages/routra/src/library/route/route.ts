@@ -12,22 +12,22 @@ import type {Router__} from '../router';
 import type {CreateViewOptions} from '../routra';
 import {routra} from '../routra';
 import type {Schema} from '../schema';
-import type {IView, IView__} from '../view';
+import type {IView} from '../view';
 
 import type {RouteEntry} from './route-entry';
 import type {RouteOperation_} from './route-operation';
 
 export type Route__ = Route_<Schema, unknown, object, string[]>;
 
-export type RouteNode__ = RouteNode_<Schema, string[]>;
+export type RouteNode__ = RouteNode_<Schema, unknown, object, string[]>;
 
 export function createRoute(
   router: Router__,
   schema: Schema,
   path: string[],
   stateMapUpdate: Map<number, object>,
-): Route__ {
-  const Route = schema.$exact === false ? RouteNodeObject_ : RouteObject_;
+): Route__ | RouteNode__ {
+  const Route = schema.$exact === false ? RouteNodeClass_ : RouteClass_;
 
   const route: any = (state: object) =>
     new Route(
@@ -42,7 +42,11 @@ export function createRoute(
   return route;
 }
 
-export class RouteNodeObject_<TPath extends string[]> {
+export class RouteNodeClass_<
+  TSwitchingState,
+  TMergedState,
+  TPath extends string[],
+> {
   readonly $key = _.last(this.$path)!;
 
   /**
@@ -124,6 +128,14 @@ export class RouteNodeObject_<TPath extends string[]> {
     return transition;
   }
 
+  $view(
+    options?: CreateViewOptions,
+  ): IView<
+    RouteNode_<RouteSchemaType_<this>, TSwitchingState, TMergedState, TPath>
+  > {
+    return routra.$view([this as any], options);
+  }
+
   private _isMatched({path: entryPath}: RouteEntry): boolean {
     const {$path} = this;
 
@@ -133,16 +145,20 @@ export class RouteNodeObject_<TPath extends string[]> {
   }
 }
 
-export interface RouteNode_<TSchema, TPath extends string[]>
-  extends RouteNodeObject_<TPath> {
-  (state: SchemaStateType_<TSchema>): this;
-}
-
-export class RouteObject_<
+export interface RouteNode_<
+  TSchema,
   TSwitchingState,
   TMergedState,
   TPath extends string[],
-> extends RouteNodeObject_<TPath> {
+> extends RouteNodeClass_<TSwitchingState, TMergedState, TPath> {
+  (state: SchemaStateType_<TSchema>): this;
+}
+
+export class RouteClass_<
+  TSwitchingState,
+  TMergedState,
+  TPath extends string[],
+> extends RouteNodeClass_<TSwitchingState, TMergedState, TPath> {
   constructor(
     $router: Router__,
     schema: Schema,
@@ -163,14 +179,6 @@ export class RouteObject_<
   get $replace(): RouteOperation_<TMergedState, TSwitchingState> {
     return this.$router._replace(this.$path, this._stateMapUpdate);
   }
-
-  $view(
-    options?: CreateViewOptions,
-  ): IView<
-    Route_<RouteSchemaType_<this>, TSwitchingState, TMergedState, TPath>
-  > {
-    return routra.$view([this as any], options);
-  }
 }
 
 declare const __schema_type: unique symbol;
@@ -180,7 +188,7 @@ export interface Route_<
   TSwitchingState,
   TMergedState,
   TPath extends string[],
-> extends RouteObject_<TSwitchingState, TMergedState, TPath> {
+> extends RouteClass_<TSwitchingState, TMergedState, TPath> {
   [__schema_type]: TSchema;
 
   (state: SchemaStateType_<TSchema>): this;
@@ -202,7 +210,7 @@ export type RouteType_<
   SchemaStateType_<TSchema>
 > extends infer TMergedState
   ? (TSchema extends {$exact: false}
-      ? RouteNode_<TSchema, TPath>
+      ? RouteNode_<TSchema, TSwitchingState, TMergedState, TPath>
       : Route_<TSchema, TSwitchingState, TMergedState, TPath>) &
       (SchemaChildrenType_<TSchema> extends infer TSchemaRecord
         ? {
@@ -230,4 +238,4 @@ export type RouteMergedState_<TRoute> = TRoute extends Route_<
   any
 >
   ? TMergedState
-  : never;
+  : {};

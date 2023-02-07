@@ -1,10 +1,10 @@
 import {autorun, makeObservable, observable, runInAction} from 'mobx';
 
-import type {RouteMergedState_, Route__} from '../route';
+import type {RouteMergedState_, RouteNode__} from '../route';
 
-import type {ViewRouteMatch, ViewRouteMatch__} from './view';
+import type {ViewRouteMatch} from './view';
 
-abstract class ViewEntryClass<TRoute extends Route__> {
+abstract class ViewEntryClass<TRoute extends RouteNode__> {
   readonly $key = getNextViewEntryKey();
 
   @observable
@@ -21,6 +21,38 @@ abstract class ViewEntryClass<TRoute extends Route__> {
 
   private _autorunDisposer: () => void;
 
+  private enteringTransitionActivity: ViewTransitionActivity = {
+    complete: () => {
+      if (!this._enteringEnabled) {
+        throw new Error('Entering transition is not enabled');
+      }
+
+      if (this._entered) {
+        return;
+      }
+
+      runInAction(() => {
+        this._entered = true;
+      });
+    },
+  };
+
+  private leavingTransitionActivity: ViewTransitionActivity = {
+    complete: () => {
+      if (!this._leavingEnabled) {
+        throw new Error('Leaving transition is not enabled');
+      }
+
+      if (this._left) {
+        return;
+      }
+
+      runInAction(() => {
+        this._left = true;
+      });
+    },
+  };
+
   constructor() {
     makeObservable(this);
 
@@ -28,51 +60,11 @@ abstract class ViewEntryClass<TRoute extends Route__> {
   }
 
   get $entering(): ViewTransitionActivity | false {
-    if (!this._entering) {
-      return false;
-    }
-
-    const that = this;
-
-    return {
-      complete(): void {
-        if (!that._enteringEnabled) {
-          throw new Error('Entering transition is not enabled');
-        }
-
-        if (that._entered) {
-          return;
-        }
-
-        runInAction(() => {
-          that._entered = true;
-        });
-      },
-    };
+    return this._entering ? this.enteringTransitionActivity : false;
   }
 
   get $leaving(): ViewTransitionActivity | false {
-    if (!this._leaving) {
-      return false;
-    }
-
-    const that = this;
-
-    return {
-      complete(): void {
-        if (!that._leavingEnabled) {
-          throw new Error('Leaving transition is not enabled');
-        }
-
-        if (that._left) {
-          return;
-        }
-
-        runInAction(() => {
-          that._left = true;
-        });
-      },
-    };
+    return this._leaving ? this.leavingTransitionActivity : false;
   }
 
   get $match(): TRoute {
@@ -102,10 +94,12 @@ abstract class ViewEntryClass<TRoute extends Route__> {
 
 export const AbstractViewEntry = ViewEntryClass;
 
-export type IViewEntry<TRoute extends Route__> = ViewEntryClass<TRoute>;
+export type IViewEntry<TRoute extends RouteNode__> = ViewEntryClass<TRoute>;
 
-export type ViewEntry<TRoute extends Route__> = ViewEntryClass<TRoute> &
+export type ViewEntry<TRoute extends RouteNode__> = ViewEntryClass<TRoute> &
   RouteMergedState_<TRoute>;
+
+export type ViewEntry__ = ViewEntry<RouteNode__>;
 
 export interface ViewEntryRegisterTransitionOptions {
   entering: boolean;

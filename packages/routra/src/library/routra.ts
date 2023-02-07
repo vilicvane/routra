@@ -1,4 +1,4 @@
-import type {Route__} from './route';
+import type {RouteNode__} from './route';
 import type {Router, RouterOptions, Router__} from './router';
 import {Router_} from './router';
 import type {Schema} from './schema';
@@ -24,12 +24,12 @@ export function routra(
 }
 
 export namespace routra {
-  export function $view<TRoute extends Route__>(
+  export function $view<TRoute extends RouteNode__>(
     routes: TRoute[],
     options?: CreateViewOptions,
   ): IView<TRoute>;
   export function $view(
-    routes: Route__[],
+    routes: RouteNode__[],
     {single = false}: CreateViewOptions = {},
   ): IView__ {
     return single ? new SingleView__(routes) : new ParallelView__(routes);
@@ -37,4 +37,3 @@ export namespace routra {
 }
 
 export default routra;
-

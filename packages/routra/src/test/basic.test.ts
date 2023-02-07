@@ -1,7 +1,7 @@
 import {reaction, runInAction} from 'mobx';
 import type {AssertTrue, IsEqual} from 'tslang';
 
-import {RouteNodeObject_, RouteObject_, routra} from '../library';
+import {RouteNodeClass_, RouteClass_, routra} from '../library';
 
 test('simple case 1', () => {
   const router = routra({
@@ -468,10 +468,10 @@ test('$exact false support', () => {
     about: true,
   }).$create();
 
-  expect(router_1.home instanceof RouteNodeObject_).toBe(true);
-  expect(router_1.home instanceof RouteObject_).toBe(false);
-  expect(router_1.home.world instanceof RouteObject_).toBe(true);
-  expect(router_1.about instanceof RouteObject_).toBe(true);
+  expect(router_1.home instanceof RouteNodeClass_).toBe(true);
+  expect(router_1.home instanceof RouteClass_).toBe(false);
+  expect(router_1.home.world instanceof RouteClass_).toBe(true);
+  expect(router_1.about instanceof RouteClass_).toBe(true);
 
   type _ =
     | AssertTrue<typeof router_1.home extends {$reset: unknown} ? false : true>

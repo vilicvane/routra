@@ -1,11 +1,11 @@
 import {computed, makeObservable} from 'mobx';
 
 import {createMergedObjectProxy} from '../@utils';
-import type {RouteEntry, Route__} from '../route';
+import type {RouteEntry, RouteNode__, Route__} from '../route';
 
 import type {IViewEntry, ViewEntry} from './view-entry';
 
-abstract class View<TRoute extends Route__> {
+abstract class View<TRoute extends RouteNode__> {
   private _mergedEntryMap = new WeakMap<
     IViewEntry<TRoute>,
     ViewEntry<TRoute>
@@ -58,13 +58,13 @@ abstract class View<TRoute extends Route__> {
 
 export const AbstractView = View;
 
-export type IView<TRoute extends Route__> = View<TRoute>;
+export type IView<TRoute extends RouteNode__> = View<TRoute>;
 
-export type IView__ = IView<Route__>;
+export type IView__ = IView<RouteNode__>;
 
-export interface ViewRouteMatch<TRoute extends Route__> {
+export interface ViewRouteMatch<TRoute extends RouteNode__> {
   route: TRoute;
   entry: RouteEntry;
 }
 
-export type ViewRouteMatch__ = ViewRouteMatch<Route__>;
+export type ViewRouteMatch__ = ViewRouteMatch<RouteNode__>;

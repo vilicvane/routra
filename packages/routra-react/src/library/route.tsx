@@ -1,31 +1,25 @@
-import {computed, makeObservable, observable, runInAction} from 'mobx';
+import {makeObservable} from 'mobx';
 import {observer} from 'mobx-react';
 import type {ComponentType, ReactNode} from 'react';
-import React, {Component, createContext} from 'react';
-import type {RouteNode__, ViewType} from 'routra';
-import {createMergedObjectProxy} from 'routra';
+import React, {Component} from 'react';
+import type {IView, RouteNode__, ViewEntry} from 'routra';
 
 import type {MatchContextObject} from './@match-context';
 import {MatchContext} from './@match-context';
+import type {RouteViewComponentTransition} from './@route-view';
 import {RouteView} from './@route-view';
-import {routraReactOptions} from './options';
-
-const STABLE_OPTION_DEFAULT = false;
-const SINGLE_OPTION_DEFAULT = false;
-const LEAVING_OPTION_DEFAULT = false;
-
-export const RouteContext = createContext<RouteViewEntry>(undefined!);
 
 export interface RouteComponentLeaving {
   $complete(): void;
 }
 
 export interface RouteComponentProps<TRoute extends RouteNode__> {
-  view: NonNullable<RouteView<TRoute>>;
+  view: ViewEntry<TRoute>;
+  transition: RouteViewComponentTransition;
 }
 
 export interface RouteProps<TRoute extends RouteNode__> {
-  view: ViewType;
+  view: IView<TRoute>;
   component: ComponentType<RouteComponentProps<TRoute>>;
 }
 
@@ -76,11 +70,4 @@ export class Route<TRoute extends RouteNode__> extends Component<
   }
 
   static override contextType = MatchContext;
-}
-
-interface RouteViewEntry {
-  key: number | string;
-  view: IView__;
-  route: RouteNode__;
-  leaving: RouteComponentLeaving | false;
 }
