@@ -1,5 +1,5 @@
 export interface Schema {
-  $state?: object;
+  $state?: object | (() => object);
   $exact?: boolean;
   $children?: SchemaRecord;
 }

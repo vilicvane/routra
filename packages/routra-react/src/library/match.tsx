@@ -1,6 +1,6 @@
 import {observer} from 'mobx-react';
-import type {ComponentType, ReactNode} from 'react';
-import React, {Component} from 'react';
+import type {ComponentType} from 'react';
+import React from 'react';
 import type {RouteNode__} from 'routra';
 
 export interface MatchComponentProps<TRoute extends RouteNode__> {
@@ -12,19 +12,11 @@ export interface MatchProps<TRoute extends RouteNode__> {
   component: ComponentType<MatchComponentProps<TRoute>>;
 }
 
-@observer
-export class Match<TRoute extends RouteNode__> extends Component<
-  MatchProps<TRoute>
-> {
-  override render(): ReactNode {
-    const {
-      props: {match, component: Component},
-    } = this;
-
-    if (match.$matched) {
-      return null;
-    }
-
-    return <Component route={match} />;
-  }
-}
+export const Match = observer(
+  <TRoute extends RouteNode__>({
+    match,
+    component: Component,
+  }: MatchProps<TRoute>) => {
+    return match.$matched ? <Component route={match} /> : null;
+  },
+);

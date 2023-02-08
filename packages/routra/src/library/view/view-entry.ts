@@ -115,12 +115,15 @@ abstract class ViewEntryClass<TRoute extends RouteNode__> {
 
   protected abstract get _leaving(): boolean;
 
-  $transition({entering, leaving}: ViewEntryRegisterTransitionOptions): void {
+  $transition = ({
+    entering,
+    leaving,
+  }: ViewEntryRegisterTransitionOptions): void => {
     runInAction(() => {
       this._enteringEnabled = entering;
       this._leavingEnabled = leaving;
     });
-  }
+  };
 
   /** @internal */
   _dispose(): void {

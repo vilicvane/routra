@@ -2,7 +2,7 @@ import {mergeStateMapWithPart} from '../@state';
 import type {RouterOperation, RouterSetResult, Router__} from '../router';
 
 import type {RouteTarget} from './route-entry';
-import type {RouteSwitching_} from './route-switching';
+import type {RouteSwitching} from './route-switching';
 
 export function createRouteOperation(
   router: Router__,
@@ -43,7 +43,7 @@ export class RouteOperationClass<
   $switch(
     statePart: Partial<TMergedState> = {},
     switchingState?: TSwitchingState,
-  ): RouteSwitching_<TSwitchingState> {
+  ): RouteSwitching<TSwitchingState> {
     const {path, stateMap, previous} = this.target;
 
     return this.router._switch(
@@ -73,17 +73,17 @@ export function createRouteBack(
   }, new RouteBackClass(router, target));
 }
 
-export interface RouteBack_<TSwitchingState extends object>
+export interface RouteBack<TSwitchingState extends object>
   extends RouteBackClass<TSwitchingState> {
   (): RouterSetResult;
 }
 
-export type RouteBack__ = RouteBack_<object>;
+export type RouteBack__ = RouteBack<object>;
 
 export class RouteBackClass<TSwitchingState extends object> {
   constructor(private router: Router__, private target: RouteTarget) {}
 
-  $switch(switchingState?: TSwitchingState): RouteSwitching_<TSwitchingState> {
+  $switch(switchingState?: TSwitchingState): RouteSwitching<TSwitchingState> {
     return this.router._switch('back', this.target, switchingState);
   }
 }

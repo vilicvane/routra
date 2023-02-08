@@ -4,11 +4,13 @@ import type {
   ComponentType,
   ReactElement,
 } from 'react';
-import React, {useState} from 'react';
+import React, {createContext, useMemo, useState} from 'react';
 import useEvent from 'react-use-event-hook';
-import type {RouteNode__, ViewEntry} from 'routra';
+import type {RouteNode__, ViewEntry, ViewEntry__} from 'routra';
 
 import type {RouteComponentProps} from './route';
+
+export const RouteContext = createContext<RouteContextObject>(undefined!);
 
 export interface RouteViewProps<TRoute extends RouteNode__> {
   entry: ViewEntry<TRoute>;
@@ -44,8 +46,24 @@ export const RouteView = <TRoute extends RouteNode__>({
     };
   });
 
-  return <Component view={entry} transition={transition} />;
+  const context = useMemo(() => {
+    return {
+      view: entry,
+      transition,
+    };
+  }, [entry, transition]);
+
+  return (
+    <RouteContext.Provider value={context}>
+      <Component view={entry} transition={transition} />
+    </RouteContext.Provider>
+  );
 };
+
+export interface RouteContextObject {
+  view: ViewEntry__;
+  transition: RouteViewComponentTransition;
+}
 
 export interface RouteViewComponentTransition {
   events: {

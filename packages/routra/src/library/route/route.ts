@@ -3,7 +3,7 @@ import {computed, makeObservable} from 'mobx';
 import type {
   ChildSchemaFallback_,
   SchemaChildrenType_,
-  SchemaStateType_,
+  SchemaState_,
 } from '../@schema';
 import type {OverrideObject_} from '../@utils';
 import {isArrayEqual, isArrayStartedWith} from '../@utils';
@@ -26,19 +26,16 @@ export function createRoute(
   path: string[],
   stateMapUpdate: Map<number, object>,
 ): Route__ | RouteNode__ {
-  const Route = schema.$exact === false ? RouteNodeClass : RouteClass;
+  const Constructor = schema.$exact === false ? RouteNodeClass : RouteClass;
 
-  const route: any = (state: object) =>
-    new Route(
+  return Object.setPrototypeOf((state: object) => {
+    return new Constructor(
       router,
       schema,
       path,
       new Map([...stateMapUpdate, [path.length - 1, state]]),
     );
-
-  Object.setPrototypeOf(route, new Route(router, schema, path, stateMapUpdate));
-
-  return route;
+  }, new Constructor(router, schema, path, stateMapUpdate));
 }
 
 export class RouteNodeClass<
@@ -181,7 +178,7 @@ export interface RouteNode_<
   TMergedState extends object,
   TPath extends string[],
 > extends RouteNodeClass<TSwitchingState, TMergedState, TPath> {
-  (state: SchemaStateType_<TSchema>): this;
+  (state: SchemaState_<TSchema>): this;
 }
 
 export class RouteClass<
@@ -221,7 +218,7 @@ export interface Route_<
 > extends RouteClass<TSwitchingState, TMergedState, TPath> {
   [__schema_type]: TSchema;
 
-  (state: SchemaStateType_<TSchema>): this;
+  (state: SchemaState_<TSchema>): this;
 }
 
 type RouteSchemaType_<TRoute> = TRoute extends {
@@ -237,7 +234,7 @@ export type RouteType_<
   TPath extends string[],
 > = OverrideObject_<
   TUpperMergedState,
-  SchemaStateType_<TSchema>
+  SchemaState_<TSchema>
 > extends infer TMergedState extends object
   ? (TSchema extends {$exact: false}
       ? RouteNode_<TSchema, TSwitchingState, TMergedState, TPath>

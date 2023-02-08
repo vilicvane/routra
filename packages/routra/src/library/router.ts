@@ -4,7 +4,9 @@ import {makeObservable, observable, runInAction, when} from 'mobx';
 import type {ChildSchemaFallback_, SchemaChildrenType_} from './@schema';
 import {getCommonStartOfTwoArray} from './@utils';
 import type {
+  RouteBack,
   RouteOperation__,
+  RouteSwitching,
   RouteSwitching__,
   RouteTarget,
   RouteType_,
@@ -12,6 +14,7 @@ import type {
 import {
   RouteEntry,
   createRoute,
+  createRouteBack,
   createRouteOperation,
   createRouteSwitching,
 } from './route';
@@ -58,6 +61,22 @@ export class RouterClass<TSwitchingState extends object> {
         );
       }
     }
+  }
+
+  get $back(): RouteBack<TSwitchingState> {
+    const active = this._requireActiveRouteEntry();
+
+    const target = active.previous;
+
+    if (!target) {
+      throw new Error('No previous entry');
+    }
+
+    return createRouteBack(this, target);
+  }
+
+  get $ableToBack(): boolean {
+    return this._active?.previous !== undefined;
   }
 
   /** @internal */
@@ -112,13 +131,21 @@ export class RouterClass<TSwitchingState extends object> {
   _switch(
     operation: RouterOperation,
     {path, stateMap, previous}: RouteTarget,
-    switchingState: unknown,
+    switchingState: object | undefined,
   ): RouteSwitching__ {
     const ref = {};
 
-    const switchingStateObservable = observable.box(
-      switchingState ?? this._options.defaultSwitchingState ?? {},
-    );
+    if (switchingState === undefined) {
+      switchingState = this._options.defaultSwitchingState;
+
+      if (switchingState === undefined) {
+        throw new Error(
+          'Switching state is required as no default is provided',
+        );
+      }
+    }
+
+    const switchingStateObservable = observable.box(switchingState);
 
     const switching = new RouteEntry(this, path, stateMap, previous);
 
@@ -156,7 +183,7 @@ export class RouterClass<TSwitchingState extends object> {
   /** @internal */
   _set(operation: RouterOperation, target: RouteTarget): RouterSetResult {
     return {
-      $completed: new Promise(resolve =>
+      $completed: new Promise<void>(resolve =>
         this._startTransition(operation, target, resolve),
       ),
     };
@@ -292,11 +319,21 @@ function buildStateMap(
 
     const stateIndex = commonStartKeys.length + index;
 
-    const state =
-      stateMapUpdate.get(stateIndex) ??
-      ('$state' in schema ? schema.$state : {});
+    let state = stateMapUpdate.get(stateIndex);
 
-    if (!state) {
+    if (state === undefined) {
+      if ('$state' in schema) {
+        state = schema.$state;
+
+        if (typeof state === 'function') {
+          state = state();
+        }
+      } else {
+        state = {};
+      }
+    }
+
+    if (state === undefined) {
       throw new Error(
         `State ${JSON.stringify(
           key,
@@ -344,3 +381,10 @@ export type Router<
         >;
       }
     : never);
+
+export type RouterSwitchingState<TRouter extends Router__> =
+  TRouter extends RouterClass<infer TSwitchingState> ? TSwitchingState : never;
+
+export type RouterSwitching<TRouter extends Router__> = RouteSwitching<
+  RouterSwitchingState<TRouter>
+>;

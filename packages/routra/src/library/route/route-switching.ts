@@ -15,13 +15,12 @@ export function createRouteSwitching(
   }, new RouteSwitchingObject(router, ref));
 }
 
-export interface RouteSwitching_<TSwitchingState> extends RouteSwitchingObject {
+export interface RouteSwitching<TSwitchingState extends object>
+  extends RouteSwitchingObject {
   (state: TSwitchingState): void;
 }
 
-export type RouteSwitching__ = RouteSwitching_<object>;
-
-export type TransitionAbortHandler = () => void;
+export type RouteSwitching__ = RouteSwitching<object>;
 
 export class RouteSwitchingObject {
   constructor(private router: Router__, private ref: object) {}

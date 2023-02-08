@@ -1,9 +1,11 @@
 import type {SchemaRecord} from './schema';
 
-export type SchemaStateType_<TSchema> = TSchema extends SchemaStatePart<
+export type SchemaState_<TSchema> = TSchema extends SchemaStatePart<
   infer TState
 >
-  ? TState
+  ? TState extends () => infer TState
+    ? TState
+    : TState
   : object;
 
 interface SchemaStatePart<TState extends object> {
