@@ -1,3 +1,5 @@
+import {observable} from 'mobx';
+
 export function mergeStateMapWithPart(
   path: string[],
   stateMap: Map<number, object>,
@@ -22,7 +24,7 @@ export function mergeStateMapWithPart(
       }
     }
 
-    mergedStateMap.set(index, Object.freeze(mergedState));
+    mergedStateMap.set(index, observable(mergedState));
   }
 
   if (pendingStatePartMap.size > 0) {

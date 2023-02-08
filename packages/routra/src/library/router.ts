@@ -300,10 +300,7 @@ function buildStateMap(
   for (const [index, key] of commonStartKeys.entries()) {
     const state = stateMapUpdate.get(index);
 
-    stateMap.set(
-      index,
-      state ? Object.freeze(state) : activeStateMap.get(index)!,
-    );
+    stateMap.set(index, state ? observable(state) : activeStateMap.get(index)!);
 
     const schema = upperSchemas[key];
 
@@ -341,7 +338,7 @@ function buildStateMap(
       );
     }
 
-    stateMap.set(stateIndex, Object.freeze(state));
+    stateMap.set(stateIndex, observable(state));
 
     upperSchemas = schema.$children ?? {};
   }

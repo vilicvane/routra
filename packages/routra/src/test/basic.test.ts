@@ -1,4 +1,4 @@
-import {reaction} from 'mobx';
+import {reaction, runInAction} from 'mobx';
 import type {AssertTrue, IsEqual} from 'tslang';
 
 import type {RouteNode__, ViewSwitchingRelationship} from '../library';
@@ -78,10 +78,23 @@ test('simple case 1', async () => {
     },
   ]);
 
-  expect(router.home.$view().$entries[0].user).toBe('123');
-  expect(() => {
-    router.home.$view().$entries[0].user = 'abc';
-  }).toThrow(TypeError);
+  let observedUser: string | undefined;
+
+  const dispose = reaction(
+    () => router.home.$view().$entries[0].user,
+    user => {
+      observedUser = user;
+    },
+  );
+
+  runInAction(() => {
+    router.home.$view().$entries[0].user = '456';
+  });
+
+  dispose();
+
+  expect(router.home.$view().$entries[0].user).toBe('456');
+  expect(observedUser).toBe('456');
 
   type _ =
     | AssertTrue<
