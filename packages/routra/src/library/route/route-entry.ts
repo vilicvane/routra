@@ -47,11 +47,7 @@ export class RouteEntry {
     return this === this.router._transition?.target;
   }
 
-  get switchingFrom(): boolean {
-    return this.active && this.router._switching !== undefined;
-  }
-
-  get switchingTo(): boolean {
+  get switching(): boolean {
     return this === this.router._switching?.to;
   }
 

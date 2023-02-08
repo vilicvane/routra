@@ -32,6 +32,7 @@ export class SingleView__ extends AbstractView<RouteNode__> {
 
 export class SingleViewEntry__ extends AbstractViewEntry<RouteNode__> {
   private _blockedActive: RouteEntry | undefined;
+
   private _blockedTransition: RouteEntry | undefined;
 
   constructor(private _view: SingleView__) {
@@ -39,8 +40,9 @@ export class SingleViewEntry__ extends AbstractViewEntry<RouteNode__> {
   }
 
   /** @internal */
+  @computed
   get _match(): ViewRouteMatch__ {
-    return (this._active ?? this._transition)!;
+    return (this._active ?? this._transition ?? this._switching)!;
   }
 
   protected get _entering(): boolean {
@@ -64,6 +66,11 @@ export class SingleViewEntry__ extends AbstractViewEntry<RouteNode__> {
   @computed
   private get _transition(): ViewRouteMatch__ | undefined {
     return this._view._matches.find(match => match.entry.transition);
+  }
+
+  @computed
+  private get _switching(): ViewRouteMatch__ | undefined {
+    return this._view._matches.find(match => match.entry.switching);
   }
 
   /** @internal */
