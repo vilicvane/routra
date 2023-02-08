@@ -1,6 +1,11 @@
-import {autorun, makeObservable, observable, runInAction} from 'mobx';
+import {autorun, computed, makeObservable, observable, runInAction} from 'mobx';
 
-import type {RouteMergedState_, RouteNode__} from '../route';
+import {createMergedObjectProxy} from '../@utils';
+import type {
+  RouteMergedState_,
+  RouteNode__,
+  RouteSwitchingState_,
+} from '../route';
 
 import type {ViewRouteMatch} from './view';
 
@@ -22,7 +27,7 @@ abstract class ViewEntryClass<TRoute extends RouteNode__> {
   private _autorunDisposer: () => void;
 
   private enteringTransitionActivity: ViewTransitionActivity = {
-    complete: () => {
+    $complete: () => {
       if (!this._enteringEnabled) {
         throw new Error('Entering transition is not enabled');
       }
@@ -38,7 +43,7 @@ abstract class ViewEntryClass<TRoute extends RouteNode__> {
   };
 
   private leavingTransitionActivity: ViewTransitionActivity = {
-    complete: () => {
+    $complete: () => {
       if (!this._leavingEnabled) {
         throw new Error('Leaving transition is not enabled');
       }
@@ -65,6 +70,39 @@ abstract class ViewEntryClass<TRoute extends RouteNode__> {
 
   get $leaving(): ViewTransitionActivity | false {
     return this._leaving ? this.leavingTransitionActivity : false;
+  }
+
+  @computed
+  get $switching(): ViewSwitchingActivity<TRoute> | false {
+    const route = this._match.route;
+
+    const switchingTo = route._switching;
+
+    if (switchingTo) {
+      const shared = Object.freeze({
+        $rel: 'to',
+      });
+
+      return createMergedObjectProxy(() => [
+        shared,
+        switchingTo.switchingStateObservable.get(),
+      ]) as ViewSwitchingActivity<TRoute>;
+    }
+
+    const switchingFrom = route.$router._switching;
+
+    if (route.$active && switchingFrom) {
+      const shared = Object.freeze({
+        $rel: 'from',
+      });
+
+      return createMergedObjectProxy(() => [
+        shared,
+        switchingFrom.switchingStateObservable.get(),
+      ]) as ViewSwitchingActivity<TRoute>;
+    }
+
+    return false;
   }
 
   get $match(): TRoute {
@@ -107,8 +145,15 @@ export interface ViewEntryRegisterTransitionOptions {
 }
 
 export interface ViewTransitionActivity {
-  complete(): void;
+  $complete(): void;
 }
+
+export type ViewSwitchingRelationship = 'from' | 'to';
+
+export type ViewSwitchingActivity<TRoute extends RouteNode__> =
+  RouteSwitchingState_<TRoute> & {
+    $rel: ViewSwitchingRelationship;
+  };
 
 let lastViewEntryKey = 0;
 

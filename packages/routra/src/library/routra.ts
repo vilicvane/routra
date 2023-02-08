@@ -1,6 +1,8 @@
+import MultikeyMap from 'multikey-map';
+
 import type {RouteNode__} from './route';
 import type {Router, RouterOptions, Router__} from './router';
-import {Router_} from './router';
+import {RouterClass} from './router';
 import type {Schema} from './schema';
 import type {IView, IView__} from './view';
 import {ParallelView__, SingleView__} from './view';
@@ -11,19 +13,21 @@ export interface CreateViewOptions {
 
 export function routra<TSchema extends Schema>(
   schema: TSchema,
-): Router<TSchema, undefined>;
-export function routra<TSchema extends Schema, TSwitchingState>(
+): Router<TSchema, object>;
+export function routra<TSchema extends Schema, TSwitchingState extends object>(
   schema: TSchema,
   options: RouterOptions<TSwitchingState>,
 ): Router<TSchema, TSwitchingState>;
 export function routra(
   schema: Schema,
-  options: RouterOptions<unknown> = {defaultSwitchingState: undefined},
+  options: RouterOptions<object> = {defaultSwitchingState: undefined},
 ): Router__ {
-  return new Router_(schema, options);
+  return new RouterClass(schema, options);
 }
 
 export namespace routra {
+  const viewCache = new MultikeyMap<unknown[], IView__>();
+
   export function $view<TRoute extends RouteNode__>(
     routes: TRoute[],
     options?: CreateViewOptions,
@@ -32,7 +36,16 @@ export namespace routra {
     routes: RouteNode__[],
     {single = false}: CreateViewOptions = {},
   ): IView__ {
-    return single ? new SingleView__(routes) : new ParallelView__(routes);
+    const key = [single, ...routes];
+
+    let view = viewCache.get(key);
+
+    if (!view) {
+      view = single ? new SingleView__(routes) : new ParallelView__(routes);
+      viewCache.set(key, view);
+    }
+
+    return view;
   }
 }
 

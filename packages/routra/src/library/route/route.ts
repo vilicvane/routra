@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import {computed, makeObservable} from 'mobx';
 
 import type {
@@ -7,19 +6,19 @@ import type {
   SchemaStateType_,
 } from '../@schema';
 import type {OverrideObject_} from '../@utils';
-import {isArrayStartedWith} from '../@utils';
-import type {Router__} from '../router';
+import {isArrayEqual, isArrayStartedWith} from '../@utils';
+import type {Router__, SwitchingEntry, TransitionEntry} from '../router';
 import type {CreateViewOptions} from '../routra';
 import {routra} from '../routra';
 import type {Schema} from '../schema';
 import type {IView} from '../view';
 
 import type {RouteEntry} from './route-entry';
-import type {RouteOperation_} from './route-operation';
+import type {RouteOperation} from './route-operation';
 
-export type Route__ = Route_<Schema, unknown, object, string[]>;
+export type Route__ = Route_<Schema, object, object, string[]>;
 
-export type RouteNode__ = RouteNode_<Schema, unknown, object, string[]>;
+export type RouteNode__ = RouteNode_<Schema, object, object, string[]>;
 
 export function createRoute(
   router: Router__,
@@ -27,7 +26,7 @@ export function createRoute(
   path: string[],
   stateMapUpdate: Map<number, object>,
 ): Route__ | RouteNode__ {
-  const Route = schema.$exact === false ? RouteNodeClass_ : RouteClass_;
+  const Route = schema.$exact === false ? RouteNodeClass : RouteClass;
 
   const route: any = (state: object) =>
     new Route(
@@ -42,12 +41,12 @@ export function createRoute(
   return route;
 }
 
-export class RouteNodeClass_<
-  TSwitchingState,
-  TMergedState,
+export class RouteNodeClass<
+  TSwitchingState extends object,
+  TMergedState extends object,
   TPath extends string[],
 > {
-  readonly $key = _.last(this.$path)!;
+  readonly $key: string;
 
   /**
    * @internal
@@ -63,6 +62,8 @@ export class RouteNodeClass_<
     protected _stateMapUpdate: Map<number, object>,
   ) {
     makeObservable(this);
+
+    this.$key = $path[$path.length - 1];
 
     if ($children) {
       for (let [key, childSchema] of Object.entries($children)) {
@@ -80,7 +81,7 @@ export class RouteNodeClass_<
     }
   }
 
-  get $exact(): Omit<this, '$exact'> {
+  get $exact(): this {
     let clone = this._exactClone;
 
     if (clone) {
@@ -131,12 +132,12 @@ export class RouteNodeClass_<
 
   /** @internal */
   @computed
-  get _transition(): RouteEntry | undefined {
+  get _transition(): TransitionEntry | undefined {
     const {$router} = this;
 
-    const transition = $router._transition?.target;
+    const transition = $router._transition;
 
-    if (!transition || !this._isMatched(transition)) {
+    if (!transition || !this._isMatched(transition?.target)) {
       return undefined;
     }
 
@@ -145,12 +146,12 @@ export class RouteNodeClass_<
 
   /** @internal */
   @computed
-  get _switching(): RouteEntry | undefined {
+  get _switching(): SwitchingEntry | undefined {
     const {$router} = this;
 
-    const switching = $router._switching?.to;
+    const switching = $router._switching;
 
-    if (!switching || !this._isMatched(switching)) {
+    if (!switching || !this._isMatched(switching?.to)) {
       return undefined;
     }
 
@@ -169,25 +170,25 @@ export class RouteNodeClass_<
     const {$path} = this;
 
     return this._exact
-      ? _.isEqual(entryPath, $path)
+      ? isArrayEqual(entryPath, $path)
       : isArrayStartedWith(entryPath, $path);
   }
 }
 
 export interface RouteNode_<
   TSchema,
-  TSwitchingState,
-  TMergedState,
+  TSwitchingState extends object,
+  TMergedState extends object,
   TPath extends string[],
-> extends RouteNodeClass_<TSwitchingState, TMergedState, TPath> {
+> extends RouteNodeClass<TSwitchingState, TMergedState, TPath> {
   (state: SchemaStateType_<TSchema>): this;
 }
 
-export class RouteClass_<
-  TSwitchingState,
-  TMergedState,
+export class RouteClass<
+  TSwitchingState extends object,
+  TMergedState extends object,
   TPath extends string[],
-> extends RouteNodeClass_<TSwitchingState, TMergedState, TPath> {
+> extends RouteNodeClass<TSwitchingState, TMergedState, TPath> {
   constructor(
     $router: Router__,
     schema: Schema,
@@ -197,15 +198,15 @@ export class RouteClass_<
     super($router, schema, $path, stateMapUpdate);
   }
 
-  get $reset(): RouteOperation_<TMergedState, TSwitchingState> {
+  get $reset(): RouteOperation<TMergedState, TSwitchingState> {
     return this.$router._reset(this.$path, this._stateMapUpdate);
   }
 
-  get $push(): RouteOperation_<TMergedState, TSwitchingState> {
+  get $push(): RouteOperation<TMergedState, TSwitchingState> {
     return this.$router._push(this.$path, this._stateMapUpdate);
   }
 
-  get $replace(): RouteOperation_<TMergedState, TSwitchingState> {
+  get $replace(): RouteOperation<TMergedState, TSwitchingState> {
     return this.$router._replace(this.$path, this._stateMapUpdate);
   }
 }
@@ -214,10 +215,10 @@ declare const __schema_type: unique symbol;
 
 export interface Route_<
   TSchema,
-  TSwitchingState,
-  TMergedState,
+  TSwitchingState extends object,
+  TMergedState extends object,
   TPath extends string[],
-> extends RouteClass_<TSwitchingState, TMergedState, TPath> {
+> extends RouteClass<TSwitchingState, TMergedState, TPath> {
   [__schema_type]: TSchema;
 
   (state: SchemaStateType_<TSchema>): this;
@@ -231,13 +232,13 @@ type RouteSchemaType_<TRoute> = TRoute extends {
 
 export type RouteType_<
   TSchema,
-  TSwitchingState,
-  TUpperMergedState,
+  TSwitchingState extends object,
+  TUpperMergedState extends object,
   TPath extends string[],
 > = OverrideObject_<
   TUpperMergedState,
   SchemaStateType_<TSchema>
-> extends infer TMergedState
+> extends infer TMergedState extends object
   ? (TSchema extends {$exact: false}
       ? RouteNode_<TSchema, TSwitchingState, TMergedState, TPath>
       : Route_<TSchema, TSwitchingState, TMergedState, TPath>) &
@@ -255,12 +256,21 @@ export type RouteType_<
 
 export type Route<
   TSchema extends Schema,
-  TSwitchingState,
+  TSwitchingState extends object,
   TUpperMergedState extends object,
   TPath extends string[],
 > = RouteType_<TSchema, TSwitchingState, TUpperMergedState, TPath>;
 
-export type RouteMergedState_<TRoute> = TRoute extends Route_<
+export type RouteSwitchingState_<TRoute> = TRoute extends RouteNode_<
+  any,
+  infer TSwitchingState,
+  any,
+  any
+>
+  ? TSwitchingState
+  : {};
+
+export type RouteMergedState_<TRoute> = TRoute extends RouteNode_<
   any,
   any,
   infer TMergedState,

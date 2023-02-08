@@ -45,8 +45,8 @@ abstract class View<TRoute extends RouteNode__> {
     return this.$routes
       .flatMap((route): (ViewRouteMatch<TRoute> | undefined)[] => {
         const active = route._active;
-        const transition = route._transition;
-        const switching = route._switching;
+        const transition = route._transition?.target;
+        const switching = route._switching?.to;
 
         return [
           active && {route, entry: active},

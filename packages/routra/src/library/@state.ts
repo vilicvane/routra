@@ -22,7 +22,7 @@ export function mergeStateMapWithPart(
       }
     }
 
-    mergedStateMap.set(index, mergedState);
+    mergedStateMap.set(index, Object.freeze(mergedState));
   }
 
   if (pendingStatePartMap.size > 0) {

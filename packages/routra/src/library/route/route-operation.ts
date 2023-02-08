@@ -1,32 +1,39 @@
 import {mergeStateMapWithPart} from '../@state';
-import type {RouterOperation, Router__} from '../router';
+import type {RouterOperation, RouterSetResult, Router__} from '../router';
 
 import type {RouteTarget} from './route-entry';
-import type {RouteSwitching} from './route-switching';
+import type {RouteSwitching_} from './route-switching';
 
 export function createRouteOperation(
   router: Router__,
   operation: RouterOperation,
   target: RouteTarget,
-): RouteOperation_<unknown, unknown> {
+): RouteOperation<object, object> {
   // E.g.: router.home.$push();
   return Object.setPrototypeOf((statePart: object = {}) => {
     const {path, stateMap, previous} = target;
 
-    router._set(operation, {
+    return router._set(operation, {
       path,
       stateMap: mergeStateMapWithPart(path, stateMap, statePart),
       previous,
     });
-  }, new RouteOperationObject_(router, operation, target));
+  }, new RouteOperationClass(router, operation, target));
 }
 
-export interface RouteOperation_<TMergedState, TSwitchingState>
-  extends RouteOperationObject_<TMergedState, TSwitchingState> {
-  (statePart?: Partial<TMergedState>): void;
+export interface RouteOperation<
+  TMergedState extends object,
+  TSwitchingState extends object,
+> extends RouteOperationClass<TMergedState, TSwitchingState> {
+  (statePart?: Partial<TMergedState>): RouterSetResult;
 }
 
-export class RouteOperationObject_<TMergedState, TSwitchingState> {
+export type RouteOperation__ = RouteOperation<object, object>;
+
+export class RouteOperationClass<
+  TMergedState extends object,
+  TSwitchingState extends object,
+> {
   constructor(
     private router: Router__,
     private operation: RouterOperation,
@@ -36,7 +43,7 @@ export class RouteOperationObject_<TMergedState, TSwitchingState> {
   $switch(
     statePart: Partial<TMergedState> = {},
     switchingState?: TSwitchingState,
-  ): RouteSwitching<TSwitchingState> {
+  ): RouteSwitching_<TSwitchingState> {
     const {path, stateMap, previous} = this.target;
 
     return this.router._switch(
@@ -54,27 +61,29 @@ export class RouteOperationObject_<TMergedState, TSwitchingState> {
 export function createRouteBack(
   router: Router__,
   target: RouteTarget,
-): RouteBack_<unknown> {
+): RouteBack__ {
   return Object.setPrototypeOf((statePart: object = {}) => {
     const {path, stateMap, previous} = target;
 
-    router._set('back', {
+    return router._set('back', {
       path,
       stateMap: mergeStateMapWithPart(path, stateMap, statePart),
       previous,
     });
-  }, new RouteBackObject_(router, target));
+  }, new RouteBackClass(router, target));
 }
 
-export interface RouteBack_<TSwitchingState>
-  extends RouteBackObject_<TSwitchingState> {
-  (): void;
+export interface RouteBack_<TSwitchingState extends object>
+  extends RouteBackClass<TSwitchingState> {
+  (): RouterSetResult;
 }
 
-export class RouteBackObject_<TSwitchingState> {
+export type RouteBack__ = RouteBack_<object>;
+
+export class RouteBackClass<TSwitchingState extends object> {
   constructor(private router: Router__, private target: RouteTarget) {}
 
-  $switch(switchingState?: TSwitchingState): RouteSwitching<TSwitchingState> {
+  $switch(switchingState?: TSwitchingState): RouteSwitching_<TSwitchingState> {
     return this.router._switch('back', this.target, switchingState);
   }
 }

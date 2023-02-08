@@ -30,9 +30,9 @@ export const RouteView = <TRoute extends RouteNode__>({
     const {$entering, $leaving} = entry;
 
     if ($entering) {
-      $entering.complete();
+      $entering.$complete();
     } else if ($leaving) {
-      $leaving.complete();
+      $leaving.$complete();
     }
   });
 

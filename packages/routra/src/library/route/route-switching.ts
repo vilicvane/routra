@@ -7,7 +7,7 @@ export function createRouteSwitching(
   router: Router__,
   switchingStateObservable: IObservableValue<unknown>,
   ref: object,
-): RouteSwitching<unknown> {
+): RouteSwitching__ {
   return Object.setPrototypeOf((switchingState: object) => {
     runInAction(() => {
       switchingStateObservable.set(switchingState);
@@ -15,9 +15,11 @@ export function createRouteSwitching(
   }, new RouteSwitchingObject(router, ref));
 }
 
-export interface RouteSwitching<TSwitchingState> extends RouteSwitchingObject {
+export interface RouteSwitching_<TSwitchingState> extends RouteSwitchingObject {
   (state: TSwitchingState): void;
 }
+
+export type RouteSwitching__ = RouteSwitching_<object>;
 
 export type TransitionAbortHandler = () => void;
 
