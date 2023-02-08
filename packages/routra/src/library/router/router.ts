@@ -1,7 +1,7 @@
 import type {IObservableValue} from 'mobx';
 import {makeObservable, observable, runInAction, when} from 'mobx';
 
-import type {ChildSchemaFallback_, SchemaChildrenType_} from '../@schema';
+import type {ChildSchemaFallback_} from '../@schema';
 import {getCommonStartOfTwoArray} from '../@utils';
 import type {
   RouteOperation__,
@@ -16,7 +16,7 @@ import {
   createRouteOperation,
   createRouteSwitching,
 } from '../route';
-import type {Schema} from '../schema';
+import type {RouteKey, Schema, SchemaRecord} from '../schema';
 
 import type {RouterBack} from './router-back';
 import {createRouterBack} from './router-back';
@@ -41,26 +41,26 @@ export class RouterClass<TSwitchingState extends object> {
   private readonly _queue: [RouteTarget, () => void][] = [];
 
   constructor(
-    private _schema: Schema,
+    private _schemas: SchemaRecord,
     private _options: RouterOptions<TSwitchingState>,
   ) {
     makeObservable(this);
 
-    const {$children} = _schema;
-
-    if ($children) {
-      for (let [key, childSchema] of Object.entries($children)) {
-        if (childSchema === true) {
-          childSchema = {};
-        }
-
-        (this as any)[key] = createRoute(
-          this,
-          childSchema as Schema,
-          [key],
-          new Map(),
-        );
+    for (let [key, childSchema] of Object.entries(_schemas)) {
+      if (key.startsWith('$')) {
+        continue;
       }
+
+      if (childSchema === true) {
+        childSchema = {};
+      }
+
+      (this as any)[key] = createRoute(
+        this,
+        childSchema as Schema,
+        [key],
+        new Map(),
+      );
     }
   }
 
@@ -89,7 +89,7 @@ export class RouterClass<TSwitchingState extends object> {
       path,
       stateMapUpdate,
       this._active?.entry,
-      this._schema,
+      this._schemas,
     );
 
     return createRouteOperation(this, 'reset', {
@@ -103,7 +103,7 @@ export class RouterClass<TSwitchingState extends object> {
   _push(path: string[], stateMapUpdate: Map<number, object>): RouteOperation__ {
     const {entry} = this._requireActive();
 
-    const stateMap = buildStateMap(path, stateMapUpdate, entry, this._schema);
+    const stateMap = buildStateMap(path, stateMapUpdate, entry, this._schemas);
 
     return createRouteOperation(this, 'push', {
       path,
@@ -119,7 +119,7 @@ export class RouterClass<TSwitchingState extends object> {
   ): RouteOperation__ {
     const {entry} = this._requireActive();
 
-    const stateMap = buildStateMap(path, stateMapUpdate, entry, this._schema);
+    const stateMap = buildStateMap(path, stateMapUpdate, entry, this._schemas);
 
     return createRouteOperation(this, 'replace', {
       path,
@@ -300,7 +300,7 @@ function buildStateMap(
   path: string[],
   stateMapUpdate: Map<number, object>,
   active: RouteEntry | undefined,
-  schema: Schema,
+  schemas: SchemaRecord,
 ): Map<number, object> {
   const {path: activePath, stateMap: activeStateMap} = active ?? {
     path: [],
@@ -309,9 +309,12 @@ function buildStateMap(
 
   const stateMap = new Map<number, object>();
 
-  const commonStartKeys = getCommonStartOfTwoArray(path, activePath);
+  const commonStartKeys = getCommonStartOfTwoArray(
+    path,
+    activePath,
+  ) as RouteKey[];
 
-  let upperSchemas = schema.$children ?? {};
+  let upperSchemas = schemas;
 
   for (const [index, key] of commonStartKeys.entries()) {
     const state = stateMapUpdate.get(index);
@@ -320,10 +323,12 @@ function buildStateMap(
 
     const schema = upperSchemas[key];
 
-    upperSchemas = typeof schema === 'object' ? schema.$children ?? {} : {};
+    upperSchemas = typeof schema === 'object' ? schema : {};
   }
 
-  for (const [index, key] of path.slice(commonStartKeys.length).entries()) {
+  for (const [index, key] of (path as RouteKey[])
+    .slice(commonStartKeys.length)
+    .entries()) {
     let schema = upperSchemas[key];
 
     if (schema === true) {
@@ -356,7 +361,7 @@ function buildStateMap(
 
     stateMap.set(stateIndex, observable(state));
 
-    upperSchemas = schema.$children ?? {};
+    upperSchemas = schema;
   }
 
   return stateMap;
@@ -388,19 +393,16 @@ export interface RouterSetResult {
 }
 
 export type Router<
-  TSchema extends Schema,
+  TSchemaRecord extends SchemaRecord,
   TSwitchingState extends object,
-> = RouterClass<TSwitchingState> &
-  (SchemaChildrenType_<TSchema> extends infer TSchemaRecord
-    ? {
-        [TKey in Extract<keyof TSchemaRecord, string>]: RouteType_<
-          ChildSchemaFallback_<TSchemaRecord[TKey]>,
-          TSwitchingState,
-          {},
-          [TKey]
-        >;
-      }
-    : never);
+> = RouterClass<TSwitchingState> & {
+  [TKey in Extract<keyof TSchemaRecord, RouteKey>]: RouteType_<
+    ChildSchemaFallback_<TSchemaRecord[TKey]>,
+    TSwitchingState,
+    {},
+    [TKey]
+  >;
+};
 
 export type RouterSwitchingState_<TRouter> = TRouter extends RouterClass<
   infer TSwitchingState

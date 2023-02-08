@@ -3,26 +3,29 @@ import MultikeyMap from 'multikey-map';
 import type {RouteNode__} from './route';
 import type {Router, RouterOptions, Router__} from './router';
 import {RouterClass} from './router';
-import type {Schema} from './schema';
+import type {SchemaRecord} from './schema';
 import type {IView, IView__} from './view';
 import {ParallelView__, SingleView__} from './view';
 
-export interface CreateViewOptions {
-  single?: boolean;
-}
-
-export function routra<TSchema extends Schema>(
-  schema: TSchema,
-): Router<TSchema, object>;
-export function routra<TSchema extends Schema, TSwitchingState extends object>(
-  schema: TSchema,
+export function routra<TSchemaRecord extends SchemaRecord>(
+  schemas: TSchemaRecord,
+): Router<TSchemaRecord, object>;
+export function routra<
+  TSchemaRecord extends SchemaRecord,
+  TSwitchingState extends object,
+>(
+  schemas: TSchemaRecord,
   options: RouterOptions<TSwitchingState>,
-): Router<TSchema, TSwitchingState>;
+): Router<TSchemaRecord, TSwitchingState>;
 export function routra(
-  schema: Schema,
+  schemas: SchemaRecord,
   options: RouterOptions<object> = {defaultSwitchingState: undefined},
 ): Router__ {
-  return new RouterClass(schema, options);
+  return new RouterClass(schemas, options);
+}
+
+export interface CreateViewOptions {
+  single?: boolean;
 }
 
 export namespace routra {
@@ -48,5 +51,3 @@ export namespace routra {
     return view;
   }
 }
-
-export default routra;

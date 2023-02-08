@@ -6,22 +6,18 @@ import {RouteClass, RouteNodeClass, routra} from '../library';
 
 test('simple case 1', async () => {
   const router = routra({
-    $children: {
-      home: {
+    home: {
+      $state: {
+        user: 'vilicvane',
+      },
+      hello: {
         $state: {
-          user: 'vilicvane',
-        },
-        $children: {
-          hello: {
-            $state: {
-              name: '',
-            },
-          },
-          world: true,
+          name: '',
         },
       },
-      about: true,
+      world: true,
     },
+    about: true,
   });
 
   await router.home.$reset().$completed;
@@ -119,19 +115,15 @@ test('simple case 1', async () => {
 test('switching', async () => {
   const router = routra(
     {
-      $children: {
-        inbox: {
-          $children: {
-            message: {
-              $state: undefined! as {
-                id: string;
-              },
-            },
+      inbox: {
+        message: {
+          $state: undefined! as {
+            id: string;
           },
         },
-        home: true,
-        about: true,
       },
+      home: true,
+      about: true,
     },
     {
       defaultSwitchingState: {
@@ -281,16 +273,12 @@ test('switching', async () => {
 
 test('$exact false support', () => {
   const router_1 = routra({
-    $children: {
-      home: {
-        $exact: false,
-        $children: {
-          hello: true,
-          world: true,
-        },
-      },
-      about: true,
+    home: {
+      $exact: false,
+      hello: true,
+      world: true,
     },
+    about: true,
   });
 
   expect(router_1.home instanceof RouteNodeClass).toBe(true);

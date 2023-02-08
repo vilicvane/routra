@@ -1,10 +1,6 @@
 import {computed, makeObservable} from 'mobx';
 
-import type {
-  ChildSchemaFallback_,
-  SchemaChildrenType_,
-  SchemaState_,
-} from '../@schema';
+import type {ChildSchemaFallback_, SchemaState_} from '../@schema';
 import type {OverrideObject_} from '../@utils';
 import {isArrayEqual, isArrayStartedWith} from '../@utils';
 import type {
@@ -15,7 +11,7 @@ import type {
 } from '../router';
 import type {CreateViewOptions} from '../routra';
 import {routra} from '../routra';
-import type {Schema} from '../schema';
+import type {RouteKey, Schema} from '../schema';
 import type {IView} from '../view';
 
 import type {RouteEntry} from './route-entry';
@@ -59,7 +55,7 @@ export class RouteNodeClass<
 
   constructor(
     readonly $router: Router__,
-    {$children}: Schema,
+    schema: Schema,
     readonly $path: TPath,
     protected _stateMapUpdate: Map<number, object>,
   ) {
@@ -67,19 +63,21 @@ export class RouteNodeClass<
 
     this.$key = $path[$path.length - 1];
 
-    if ($children) {
-      for (let [key, childSchema] of Object.entries($children)) {
-        if (childSchema === true) {
-          childSchema = {};
-        }
-
-        (this as any)[key] = createRoute(
-          $router,
-          childSchema as Schema,
-          [...$path, key],
-          _stateMapUpdate,
-        );
+    for (let [key, childSchema] of Object.entries(schema)) {
+      if (key.startsWith('$')) {
+        continue;
       }
+
+      if (childSchema === true) {
+        childSchema = {};
+      }
+
+      (this as any)[key] = createRoute(
+        $router,
+        childSchema as Schema,
+        [...$path, key],
+        _stateMapUpdate,
+      );
     }
   }
 
@@ -243,17 +241,14 @@ export type RouteType_<
 > extends infer TMergedState extends object
   ? (TSchema extends {$exact: false}
       ? RouteNode_<TSchema, TSwitchingState, TMergedState, TPath>
-      : Route_<TSchema, TSwitchingState, TMergedState, TPath>) &
-      (SchemaChildrenType_<TSchema> extends infer TSchemaRecord
-        ? {
-            [TKey in Extract<keyof TSchemaRecord, string>]: RouteType_<
-              ChildSchemaFallback_<TSchemaRecord[TKey]>,
-              TSwitchingState,
-              TMergedState,
-              [...TPath, TKey]
-            >;
-          }
-        : never)
+      : Route_<TSchema, TSwitchingState, TMergedState, TPath>) & {
+      [TKey in Extract<keyof TSchema, RouteKey>]: RouteType_<
+        ChildSchemaFallback_<TSchema[TKey]>,
+        TSwitchingState,
+        TMergedState,
+        [...TPath, TKey]
+      >;
+    }
   : never;
 
 export type Route<
