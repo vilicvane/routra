@@ -29,8 +29,8 @@ test('simple case 1', async () => {
   expect(router.home.$view().$entries).toMatchObject([
     {
       $key: 1,
-      $entering: false,
-      $leaving: false,
+      $entering: undefined,
+      $leaving: undefined,
       $match: expect.objectContaining({
         $exact: expect.objectContaining({}),
         $path: ['home'],
@@ -49,8 +49,8 @@ test('simple case 1', async () => {
   expect(router.home.$view().$entries).toMatchObject([
     {
       $key: 2,
-      $entering: false,
-      $leaving: false,
+      $entering: undefined,
+      $leaving: undefined,
       $match: expect.objectContaining({
         $exact: expect.objectContaining({}),
         $path: ['home'],
@@ -65,8 +65,8 @@ test('simple case 1', async () => {
   expect(router.home.hello.$view().$entries).toMatchObject([
     {
       $key: 3,
-      $entering: false,
-      $leaving: false,
+      $entering: undefined,
+      $leaving: undefined,
       $match: expect.objectContaining({
         $path: ['home', 'hello'],
         $active: true,
@@ -250,17 +250,17 @@ test('switching', async () => {
 
   expect(router.inbox.$view().$entries).toMatchObject([
     {
-      $entering: false,
-      $leaving: false,
-      $switching: false,
+      $entering: undefined,
+      $leaving: undefined,
+      $switching: undefined,
     },
   ]);
 
   expect(router.inbox.message.$view().$entries).toMatchObject([
     {
-      $entering: false,
-      $leaving: false,
-      $switching: false,
+      $entering: undefined,
+      $leaving: undefined,
+      $switching: undefined,
     },
   ]);
 
