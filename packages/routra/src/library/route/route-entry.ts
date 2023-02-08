@@ -40,15 +40,15 @@ export class RouteEntry {
   }
 
   get active(): boolean {
-    return this === this.router._active;
+    return this === this.router._active?.entry;
   }
 
   get transition(): boolean {
-    return this === this.router._transition?.target;
+    return this === this.router._transition?.entry;
   }
 
   get switching(): boolean {
-    return this === this.router._switching?.to;
+    return this === this.router._switching?.entry;
   }
 
   get leaving(): boolean {

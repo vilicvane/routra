@@ -273,7 +273,7 @@ test('switching', async () => {
               $rel: ViewSwitchingRelationship;
               progress: number;
             }
-          | false;
+          | undefined;
       }
     >
   >;

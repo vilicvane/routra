@@ -1,24 +1,25 @@
 import type {IObservableValue} from 'mobx';
 import {makeObservable, observable, runInAction, when} from 'mobx';
 
-import type {ChildSchemaFallback_, SchemaChildrenType_} from './@schema';
-import {getCommonStartOfTwoArray} from './@utils';
+import type {ChildSchemaFallback_, SchemaChildrenType_} from '../@schema';
+import {getCommonStartOfTwoArray} from '../@utils';
 import type {
-  RouteBack,
   RouteOperation__,
   RouteSwitching,
   RouteSwitching__,
   RouteTarget,
   RouteType_,
-} from './route';
+} from '../route';
 import {
   RouteEntry,
   createRoute,
-  createRouteBack,
   createRouteOperation,
   createRouteSwitching,
-} from './route';
-import type {Schema} from './schema';
+} from '../route';
+import type {Schema} from '../schema';
+
+import type {RouterBack} from './router-back';
+import {createRouterBack} from './router-back';
 
 export interface RouterOptions<TSwitchingState extends object> {
   defaultSwitchingState?: TSwitchingState;
@@ -27,7 +28,7 @@ export interface RouterOptions<TSwitchingState extends object> {
 export class RouterClass<TSwitchingState extends object> {
   /** @internal */
   @observable.ref
-  _active: RouteEntry | undefined;
+  _active: ActiveEntry | undefined;
 
   /** @internal */
   @observable.ref
@@ -63,20 +64,20 @@ export class RouterClass<TSwitchingState extends object> {
     }
   }
 
-  get $back(): RouteBack<TSwitchingState> {
-    const active = this._requireActiveRouteEntry();
+  get $back(): RouterBack<TSwitchingState> {
+    const {
+      entry: {previous: entry},
+    } = this._requireActive();
 
-    const target = active.previous;
-
-    if (!target) {
+    if (!entry) {
       throw new Error('No previous entry');
     }
 
-    return createRouteBack(this, target);
+    return createRouterBack(this, entry);
   }
 
   get $ableToBack(): boolean {
-    return this._active?.previous !== undefined;
+    return this._active?.entry.previous !== undefined;
   }
 
   /** @internal */
@@ -87,7 +88,7 @@ export class RouterClass<TSwitchingState extends object> {
     const stateMap = buildStateMap(
       path,
       stateMapUpdate,
-      this._active,
+      this._active?.entry,
       this._schema,
     );
 
@@ -100,14 +101,14 @@ export class RouterClass<TSwitchingState extends object> {
 
   /** @internal */
   _push(path: string[], stateMapUpdate: Map<number, object>): RouteOperation__ {
-    const active = this._requireActiveRouteEntry();
+    const {entry} = this._requireActive();
 
-    const stateMap = buildStateMap(path, stateMapUpdate, active, this._schema);
+    const stateMap = buildStateMap(path, stateMapUpdate, entry, this._schema);
 
     return createRouteOperation(this, 'push', {
       path,
       stateMap,
-      previous: active.target,
+      previous: entry.target,
     });
   }
 
@@ -116,14 +117,14 @@ export class RouterClass<TSwitchingState extends object> {
     path: string[],
     stateMapUpdate: Map<number, object>,
   ): RouteOperation__ {
-    const active = this._requireActiveRouteEntry();
+    const {entry} = this._requireActive();
 
-    const stateMap = buildStateMap(path, stateMapUpdate, active, this._schema);
+    const stateMap = buildStateMap(path, stateMapUpdate, entry, this._schema);
 
     return createRouteOperation(this, 'replace', {
       path,
       stateMap,
-      previous: active.previous,
+      previous: entry.previous,
     });
   }
 
@@ -147,12 +148,12 @@ export class RouterClass<TSwitchingState extends object> {
 
     const switchingStateObservable = observable.box(switchingState);
 
-    const switching = new RouteEntry(this, path, stateMap, previous);
+    const entry = new RouteEntry(this, path, stateMap, previous);
 
     runInAction(() => {
       this._switching = {
         operation,
-        to: switching,
+        entry,
         switchingStateObservable,
         ref,
       };
@@ -163,10 +164,14 @@ export class RouterClass<TSwitchingState extends object> {
 
   /** @internal */
   _completeSwitching(ref: object): void {
-    const switching = this._requireSwitching(ref);
+    const {operation, entry} = this._requireSwitching(ref);
 
     runInAction(() => {
-      this._active = switching.to;
+      this._active = {
+        operation,
+        entry,
+      };
+
       this._switching = undefined;
     });
   }
@@ -190,14 +195,40 @@ export class RouterClass<TSwitchingState extends object> {
   }
 
   /** @internal */
-  _requireActiveRouteEntry(): RouteEntry {
-    const entry = this._active;
+  _requireActive(): ActiveEntry {
+    const active = this._active;
 
-    if (!entry) {
-      throw new Error('No active route entry');
+    if (!active) {
+      throw new Error('No active entry');
     }
 
-    return entry;
+    return active;
+  }
+
+  /** @internal */
+  _requireTransition(): TransitionEntry {
+    const transition = this._transition;
+
+    if (!transition) {
+      throw new Error('No transition entry');
+    }
+
+    return transition;
+  }
+
+  /** @internal */
+  _requireSwitching(ref: object): SwitchingEntry {
+    const switching = this._switching;
+
+    if (!switching) {
+      throw new Error('No switching entry');
+    }
+
+    if (ref !== switching.ref) {
+      throw new Error('Switching does not match');
+    }
+
+    return switching;
   }
 
   private _startTransition(
@@ -210,9 +241,9 @@ export class RouterClass<TSwitchingState extends object> {
       return;
     }
 
-    const active = this._active;
+    const activeRouteEntry = this._active?.entry;
 
-    const transition = new RouteEntry(
+    const transitionRouteEntry = new RouteEntry(
       this,
       target.path,
       target.stateMap,
@@ -222,7 +253,7 @@ export class RouterClass<TSwitchingState extends object> {
     runInAction(() => {
       this._transition = {
         operation,
-        target: transition,
+        entry: transitionRouteEntry,
       };
     });
 
@@ -231,25 +262,24 @@ export class RouterClass<TSwitchingState extends object> {
       .then(() =>
         when(
           () =>
-            (!active || !active.blockedByLeaving) &&
-            !transition.blockedByEntering,
+            (!activeRouteEntry || !activeRouteEntry.blockedByLeaving) &&
+            !transitionRouteEntry.blockedByEntering,
         ),
       )
       .then(() => {
-        this._finishTransition(operation);
+        this._finishTransition();
         complete();
       });
   }
 
-  private _finishTransition(operation: RouterOperation): void {
-    const transition = this._transition;
-
-    if (!transition) {
-      throw new Error('Expected transition route entry');
-    }
+  private _finishTransition(): void {
+    const {operation, entry} = this._requireTransition();
 
     runInAction(() => {
-      this._active = transition.target;
+      this._active = {
+        operation,
+        entry,
+      };
 
       this._transition = undefined;
 
@@ -261,20 +291,6 @@ export class RouterClass<TSwitchingState extends object> {
         this._startTransition(operation, target, complete);
       }
     });
-  }
-
-  private _requireSwitching(ref: object): SwitchingEntry {
-    const switching = this._switching;
-
-    if (!switching) {
-      throw new Error('No switching route entry');
-    }
-
-    if (ref !== switching.ref) {
-      throw new Error('Switching does not match');
-    }
-
-    return switching;
   }
 }
 
@@ -348,17 +364,24 @@ function buildStateMap(
 
 export type RouterOperation = 'reset' | 'push' | 'replace' | 'back';
 
+export interface ActiveEntry {
+  operation: RouterOperation;
+  entry: RouteEntry;
+}
+
 export interface TransitionEntry {
   operation: RouterOperation;
-  target: RouteEntry;
+  entry: RouteEntry;
 }
 
 export interface SwitchingEntry {
   operation: RouterOperation;
-  to: RouteEntry;
+  entry: RouteEntry;
   switchingStateObservable: IObservableValue<object>;
   ref: object;
 }
+
+export type MatchEntry = ActiveEntry | TransitionEntry | SwitchingEntry;
 
 export interface RouterSetResult {
   $completed: Promise<void>;
@@ -379,9 +402,18 @@ export type Router<
       }
     : never);
 
-export type RouterSwitchingState<TRouter extends Router__> =
-  TRouter extends RouterClass<infer TSwitchingState> ? TSwitchingState : never;
+export type RouterSwitchingState_<TRouter> = TRouter extends RouterClass<
+  infer TSwitchingState
+>
+  ? TSwitchingState
+  : never;
 
-export type RouterSwitching<TRouter extends Router__> = RouteSwitching<
-  RouterSwitchingState<TRouter>
+export type RouterSwitchingState<TRouter extends Router__> =
+  RouterSwitchingState_<TRouter>;
+
+export type RouterSwitching_<TRouter> = RouteSwitching<
+  RouterSwitchingState_<TRouter>
 >;
+
+export type RouterSwitching<TRouter extends Router__> =
+  RouterSwitching_<TRouter>;

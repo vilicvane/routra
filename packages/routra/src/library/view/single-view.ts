@@ -1,8 +1,9 @@
 import {computed, runInAction} from 'mobx';
 
 import type {RouteEntry, RouteNode__} from '../route';
+import type {RouterOperation} from '../router';
 
-import type {ViewRouteMatch__} from './view';
+import type {ViewMatchEntry__} from './view';
 import {AbstractView} from './view';
 import {AbstractViewEntry} from './view-entry';
 
@@ -31,17 +32,21 @@ export class SingleView__ extends AbstractView<RouteNode__> {
 }
 
 export class SingleViewEntry__ extends AbstractViewEntry<RouteNode__> {
+  readonly $operation: RouterOperation;
+
   private _blockedActive: RouteEntry | undefined;
 
   private _blockedTransition: RouteEntry | undefined;
 
   constructor(private _view: SingleView__) {
     super();
+
+    this.$operation = this._match.operation;
   }
 
   /** @internal */
   @computed
-  get _match(): ViewRouteMatch__ {
+  get _match(): ViewMatchEntry__ {
     return (this._active ?? this._transition ?? this._switching)!;
   }
 
@@ -59,17 +64,17 @@ export class SingleViewEntry__ extends AbstractViewEntry<RouteNode__> {
   }
 
   @computed
-  private get _active(): ViewRouteMatch__ | undefined {
+  private get _active(): ViewMatchEntry__ | undefined {
     return this._view._matches.find(match => match.entry.active);
   }
 
   @computed
-  private get _transition(): ViewRouteMatch__ | undefined {
+  private get _transition(): ViewMatchEntry__ | undefined {
     return this._view._matches.find(match => match.entry.transition);
   }
 
   @computed
-  private get _switching(): ViewRouteMatch__ | undefined {
+  private get _switching(): ViewMatchEntry__ | undefined {
     return this._view._matches.find(match => match.entry.switching);
   }
 

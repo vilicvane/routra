@@ -3,6 +3,8 @@ import type {
   AnimationEventHandler,
   ComponentType,
   ReactElement,
+  TransitionEvent,
+  TransitionEventHandler,
 } from 'react';
 import React, {createContext, useMemo, useState} from 'react';
 import useEvent from 'react-use-event-hook';
@@ -21,27 +23,30 @@ export const RouteView = <TRoute extends RouteNode__>({
   entry,
   component: Component,
 }: RouteViewProps<TRoute>): ReactElement => {
-  const onAnimationEnd = useEvent(({target, currentTarget}: AnimationEvent) => {
-    if (
-      target !== currentTarget &&
-      !(target as HTMLElement).classList.contains('routra-transition')
-    ) {
-      return;
-    }
+  const onAnimationOrTransitionEnd = useEvent(
+    ({target, currentTarget}: AnimationEvent | TransitionEvent) => {
+      if (
+        target !== currentTarget &&
+        !(target as HTMLElement).classList.contains('routra-transition')
+      ) {
+        return;
+      }
 
-    const {$entering, $leaving} = entry;
+      const {$entering, $leaving} = entry;
 
-    if ($entering) {
-      $entering.$complete();
-    } else if ($leaving) {
-      $leaving.$complete();
-    }
-  });
+      if ($entering) {
+        $entering.$complete();
+      } else if ($leaving) {
+        $leaving.$complete();
+      }
+    },
+  );
 
   const [transition] = useState(() => {
     return {
       events: {
-        onAnimationEnd,
+        onAnimationEnd: onAnimationOrTransitionEnd,
+        onTransitionEnd: onAnimationOrTransitionEnd,
       },
     };
   });
@@ -68,5 +73,6 @@ export interface RouteContextObject {
 export interface RouteViewComponentTransition {
   events: {
     onAnimationEnd: AnimationEventHandler;
+    onTransitionEnd: TransitionEventHandler;
   };
 }

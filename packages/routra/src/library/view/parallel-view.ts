@@ -1,8 +1,9 @@
 import {computed, runInAction} from 'mobx';
 
 import type {RouteEntry, RouteNode__} from '../route';
+import type {RouterOperation} from '../router';
 
-import type {ViewRouteMatch__} from './view';
+import type {ViewMatchEntry__} from './view';
 import {AbstractView} from './view';
 import {AbstractViewEntry} from './view-entry';
 
@@ -48,12 +49,15 @@ export class ParallelView__ extends AbstractView<RouteNode__> {
 
 export class ParallelViewEntry__ extends AbstractViewEntry<RouteNode__> {
   /** @internal */
-  readonly _match: ViewRouteMatch__;
+  readonly _match: ViewMatchEntry__;
 
-  constructor(match: ViewRouteMatch__) {
+  readonly $operation: RouterOperation;
+
+  constructor(match: ViewMatchEntry__) {
     super();
 
     this._match = match;
+    this.$operation = match.operation;
   }
 
   protected get _entering(): boolean {

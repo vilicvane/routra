@@ -7,7 +7,12 @@ import type {
 } from '../@schema';
 import type {OverrideObject_} from '../@utils';
 import {isArrayEqual, isArrayStartedWith} from '../@utils';
-import type {Router__, SwitchingEntry, TransitionEntry} from '../router';
+import type {
+  ActiveEntry,
+  Router__,
+  SwitchingEntry,
+  TransitionEntry,
+} from '../router';
 import type {CreateViewOptions} from '../routra';
 import {routra} from '../routra';
 import type {Schema} from '../schema';
@@ -115,12 +120,12 @@ export class RouteNodeClass<
   /** @internal */
 
   @computed
-  get _active(): RouteEntry | undefined {
+  get _active(): ActiveEntry | undefined {
     const {$router} = this;
 
-    const active = $router._requireActiveRouteEntry();
+    const active = $router._requireActive();
 
-    if (!this._isMatched(active)) {
+    if (!this._isMatched(active.entry)) {
       return undefined;
     }
 
@@ -134,7 +139,7 @@ export class RouteNodeClass<
 
     const transition = $router._transition;
 
-    if (!transition || !this._isMatched(transition?.target)) {
+    if (!transition || !this._isMatched(transition.entry)) {
       return undefined;
     }
 
@@ -148,7 +153,7 @@ export class RouteNodeClass<
 
     const switching = $router._switching;
 
-    if (!switching || !this._isMatched(switching?.to)) {
+    if (!switching || !this._isMatched(switching.entry)) {
       return undefined;
     }
 

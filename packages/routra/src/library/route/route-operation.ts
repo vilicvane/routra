@@ -57,33 +57,3 @@ export class RouteOperationClass<
     );
   }
 }
-
-export function createRouteBack(
-  router: Router__,
-  target: RouteTarget,
-): RouteBack__ {
-  return Object.setPrototypeOf((statePart: object = {}) => {
-    const {path, stateMap, previous} = target;
-
-    return router._set('back', {
-      path,
-      stateMap: mergeStateMapWithPart(path, stateMap, statePart),
-      previous,
-    });
-  }, new RouteBackClass(router, target));
-}
-
-export interface RouteBack<TSwitchingState extends object>
-  extends RouteBackClass<TSwitchingState> {
-  (): RouterSetResult;
-}
-
-export type RouteBack__ = RouteBack<object>;
-
-export class RouteBackClass<TSwitchingState extends object> {
-  constructor(private router: Router__, private target: RouteTarget) {}
-
-  $switch(switchingState?: TSwitchingState): RouteSwitching<TSwitchingState> {
-    return this.router._switch('back', this.target, switchingState);
-  }
-}

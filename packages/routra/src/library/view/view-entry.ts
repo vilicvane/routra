@@ -6,8 +6,9 @@ import type {
   RouteNode__,
   RouteSwitchingState_,
 } from '../route';
+import type {RouterOperation} from '../router';
 
-import type {ViewRouteMatch} from './view';
+import type {ViewMatchEntry} from './view';
 
 abstract class ViewEntryClass<TRoute extends RouteNode__> {
   readonly $key = getNextViewEntryKey();
@@ -26,37 +27,9 @@ abstract class ViewEntryClass<TRoute extends RouteNode__> {
 
   private _autorunDisposer: () => void;
 
-  private enteringTransitionActivity: ViewTransitionActivity = {
-    $complete: () => {
-      if (!this._enteringEnabled) {
-        throw new Error('Entering transition is not enabled');
-      }
+  private enteringTransitionActivity: ViewTransitionActivity | undefined;
 
-      if (this._entered) {
-        return;
-      }
-
-      runInAction(() => {
-        this._entered = true;
-      });
-    },
-  };
-
-  private leavingTransitionActivity: ViewTransitionActivity = {
-    $complete: () => {
-      if (!this._leavingEnabled) {
-        throw new Error('Leaving transition is not enabled');
-      }
-
-      if (this._left) {
-        return;
-      }
-
-      runInAction(() => {
-        this._left = true;
-      });
-    },
-  };
+  private leavingTransitionActivity: ViewTransitionActivity | undefined;
 
   constructor() {
     makeObservable(this);
@@ -64,16 +37,70 @@ abstract class ViewEntryClass<TRoute extends RouteNode__> {
     this._autorunDisposer = autorun(() => this._autorunUpdateTransitionBlock());
   }
 
-  get $entering(): ViewTransitionActivity | false {
-    return this._entering ? this.enteringTransitionActivity : false;
+  get $entering(): ViewTransitionActivity | undefined {
+    if (!this._entering) {
+      return undefined;
+    }
+
+    let activity = this.enteringTransitionActivity;
+
+    if (!activity) {
+      const operation = this.$operation;
+
+      activity = Object.freeze({
+        $operation: operation,
+        $complete: () => {
+          if (!this._enteringEnabled) {
+            return false;
+          }
+
+          if (!this._entered) {
+            runInAction(() => {
+              this._entered = true;
+            });
+          }
+
+          return true;
+        },
+      });
+    }
+
+    return activity;
   }
 
-  get $leaving(): ViewTransitionActivity | false {
-    return this._leaving ? this.leavingTransitionActivity : false;
+  get $leaving(): ViewTransitionActivity | undefined {
+    if (!this._leaving) {
+      return undefined;
+    }
+
+    let activity = this.leavingTransitionActivity;
+
+    if (!activity) {
+      const operation = this.$match.$router._requireTransition().operation;
+
+      activity = Object.freeze({
+        $operation: operation,
+        $complete: () => {
+          if (!this._leavingEnabled) {
+            return false;
+          }
+
+          if (!this._left) {
+            runInAction(() => {
+              this._left = true;
+            });
+          }
+
+          return true;
+        },
+      });
+    }
+
+    return activity;
   }
 
   @computed
-  get $switching(): ViewSwitchingActivity<TRoute> | false {
+  get $switching(): ViewSwitchingActivity<TRoute> | undefined {
     const route = this._match.route;
 
     const switchingTo = route._switching;
@@ -102,14 +129,16 @@ abstract class ViewEntryClass<TRoute extends RouteNode__> {
       ]) as ViewSwitchingActivity<TRoute>;
     }
 
-    return false;
+    return undefined;
   }
 
   get $match(): TRoute {
     return this._match.route;
   }
 
-  abstract get _match(): ViewRouteMatch<TRoute>;
+  abstract get $operation(): RouterOperation;
+
+  abstract get _match(): ViewMatchEntry<TRoute>;
 
   protected abstract get _entering(): boolean;
 
@@ -120,8 +149,13 @@ abstract class ViewEntryClass<TRoute extends RouteNode__> {
     leaving,
   }: ViewEntryRegisterTransitionOptions): void => {
     runInAction(() => {
-      this._enteringEnabled = entering;
-      this._leavingEnabled = leaving;
+      if (typeof entering === 'boolean') {
+        this._enteringEnabled = entering;
+      }
+
+      if (typeof leaving === 'boolean') {
+        this._leavingEnabled = leaving;
+      }
     });
   };
 
@@ -143,12 +177,13 @@ export type ViewEntry<TRoute extends RouteNode__> = ViewEntryClass<TRoute> &
 export type ViewEntry__ = ViewEntry<RouteNode__>;
 
 export interface ViewEntryRegisterTransitionOptions {
-  entering: boolean;
-  leaving: boolean;
+  entering?: boolean;
+  leaving?: boolean;
 }
 
 export interface ViewTransitionActivity {
-  $complete(): void;
+  $operation: RouterOperation;
+  $complete(): boolean;
 }
 
 export type ViewSwitchingRelationship = 'from' | 'to';

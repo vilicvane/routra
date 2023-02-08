@@ -1,7 +1,8 @@
 import {computed, makeObservable} from 'mobx';
 
 import {createMergedObjectProxy} from '../@utils';
-import type {RouteEntry, RouteNode__} from '../route';
+import type {RouteNode__} from '../route';
+import type {MatchEntry} from '../router';
 
 import type {IViewEntry, ViewEntry} from './view-entry';
 
@@ -41,20 +42,22 @@ abstract class View<TRoute extends RouteNode__> {
 
   /** @internal */
   @computed
-  get _matches(): ViewRouteMatch<TRoute>[] {
+  get _matches(): ViewMatchEntry<TRoute>[] {
     return this.$routes
-      .flatMap((route): (ViewRouteMatch<TRoute> | undefined)[] => {
+      .flatMap((route): (ViewMatchEntry<TRoute> | undefined)[] => {
         const active = route._active;
-        const transition = route._transition?.target;
-        const switching = route._switching?.to;
+        const transition = route._transition;
+        const switching = route._switching;
 
         return [
-          active && {route, entry: active},
-          transition && {route, entry: transition},
-          switching && {route, entry: switching},
+          active && {route, ...active},
+          transition && {route, ...transition},
+          switching && {route, ...switching},
         ];
       })
-      .filter((match): match is ViewRouteMatch<TRoute> => match !== undefined);
+      .filter(
+        <T>(match: T): match is Exclude<T, undefined> => match !== undefined,
+      );
   }
 }
 
@@ -64,9 +67,8 @@ export type IView<TRoute extends RouteNode__> = View<TRoute>;
 
 export type IView__ = IView<RouteNode__>;
 
-export interface ViewRouteMatch<TRoute extends RouteNode__> {
+export type ViewMatchEntry<TRoute extends RouteNode__> = MatchEntry & {
   route: TRoute;
-  entry: RouteEntry;
-}
+};
 
-export type ViewRouteMatch__ = ViewRouteMatch<RouteNode__>;
+export type ViewMatchEntry__ = ViewMatchEntry<RouteNode__>;
