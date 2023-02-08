@@ -12,7 +12,6 @@ module.exports = {
         tsProjects: [
           {
             name: 'library',
-            exportSourceAs: 'source',
           },
           {
             name: 'test',
@@ -26,7 +25,6 @@ module.exports = {
         tsProjects: [
           {
             name: 'library',
-            exportSourceAs: 'source',
             references: [
               {
                 package: 'routra',
