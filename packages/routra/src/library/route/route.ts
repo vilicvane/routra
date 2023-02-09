@@ -46,12 +46,9 @@ export class RouteNodeClass<
 > {
   readonly $key: string;
 
-  /**
-   * @internal
-   */
-  _exact = false;
+  private _exact = false;
 
-  _exactClone: this | undefined;
+  private _exactClone: this | undefined;
 
   constructor(
     readonly $router: Router__,
