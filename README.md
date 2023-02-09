@@ -39,6 +39,7 @@ const App = () => {
 
 ```tsx
 import classNames from 'classnames';
+import {useEffect} from 'react';
 import styled from 'styled-components';
 
 const View = styled.div`
