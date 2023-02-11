@@ -1,5 +1,3 @@
-import {computed} from 'mobx';
-
 export type OverrideObject_<
   TObject extends object,
   TOverride extends object,
@@ -67,9 +65,9 @@ export function createMergedObjectProxy(
   let objectsGetter: () => object[];
 
   if (typeof objects === 'function') {
-    const objectsComputed = computed(() => objects());
-
-    objectsGetter = () => objectsComputed.get();
+    // Previously this is cached by `computed()`, but it brought some outdated
+    // objects during `set` (probably related to `runInAction()`).
+    objectsGetter = objects;
   } else {
     objectsGetter = () => objects;
   }
