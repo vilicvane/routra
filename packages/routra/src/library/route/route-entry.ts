@@ -1,5 +1,6 @@
 import {observable, runInAction} from 'mobx';
 
+import {mergeStateMapWithPart} from '../@state';
 import {createMergedObjectProxy} from '../@utils';
 import type {Router__} from '../router';
 
@@ -8,6 +9,11 @@ export class RouteEntry {
 
   private leavingSet = observable.set<object>();
 
+  private states: object[];
+
+  @observable.ref
+  private pendingStatePart?: object;
+
   readonly mergedState: object;
 
   constructor(
@@ -15,12 +21,18 @@ export class RouteEntry {
     readonly path: string[],
     readonly stateMap: Map<number, object>,
     readonly previous: RouteTarget | undefined,
+    pendingStatePart: object | undefined,
   ) {
-    this.mergedState = createMergedObjectProxy(
-      Array.from(path.keys(), index => stateMap.get(index))
-        .filter((state): state is object => state !== undefined)
-        .reverse(),
-    );
+    this.states = Array.from(path.keys(), index => stateMap.get(index))
+      .filter((state): state is object => state !== undefined)
+      .reverse();
+
+    this.pendingStatePart = pendingStatePart;
+
+    this.mergedState = createMergedObjectProxy(() => {
+      const {states, pendingStatePart} = this;
+      return pendingStatePart ? [pendingStatePart, ...states] : states;
+    });
   }
 
   get target(): RouteTarget {
@@ -28,6 +40,7 @@ export class RouteEntry {
       path: this.path,
       stateMap: this.stateMap,
       previous: this.previous,
+      statePart: this.pendingStatePart ?? {},
     };
   }
 
@@ -73,6 +86,20 @@ export class RouteEntry {
       }
     });
   }
+
+  mergePendingStatePart(): void {
+    const pendingStatePart = this.pendingStatePart;
+
+    if (!pendingStatePart) {
+      return;
+    }
+
+    runInAction(() => {
+      mergeStateMapWithPart(this.path, this.stateMap, pendingStatePart);
+
+      this.pendingStatePart = undefined;
+    });
+  }
 }
 
 /** @internal */
@@ -85,4 +112,5 @@ export interface RouteTarget {
   path: string[];
   stateMap: Map<number, object>;
   previous: RouteTarget | undefined;
+  statePart: object | undefined;
 }

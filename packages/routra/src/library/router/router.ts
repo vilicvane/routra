@@ -131,7 +131,7 @@ export class RouterClass<TSwitchingState extends object> {
   /** @internal */
   _switch(
     operation: RouterOperation,
-    {path, stateMap, previous}: RouteTarget,
+    {path, stateMap, previous, statePart}: RouteTarget,
     switchingState: object | undefined,
   ): RouteSwitching__ {
     const ref = {};
@@ -148,7 +148,7 @@ export class RouterClass<TSwitchingState extends object> {
 
     const switchingStateObservable = observable.box(switchingState);
 
-    const entry = new RouteEntry(this, path, stateMap, previous);
+    const entry = new RouteEntry(this, path, stateMap, previous, statePart);
 
     runInAction(() => {
       this._switching = {
@@ -167,6 +167,8 @@ export class RouterClass<TSwitchingState extends object> {
     const {operation, entry} = this._requireSwitching(ref);
 
     runInAction(() => {
+      entry.mergePendingStatePart();
+
       this._active = {
         operation,
         entry,
@@ -248,6 +250,7 @@ export class RouterClass<TSwitchingState extends object> {
       target.path,
       target.stateMap,
       target.previous,
+      target.statePart,
     );
 
     runInAction(() => {
@@ -276,6 +279,8 @@ export class RouterClass<TSwitchingState extends object> {
     const {operation, entry} = this._requireTransition();
 
     runInAction(() => {
+      entry.mergePendingStatePart();
+
       this._active = {
         operation,
         entry,
