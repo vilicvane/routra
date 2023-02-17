@@ -9,9 +9,10 @@ module.exports = {
     packages: [
       {
         name: 'routra',
-        tsProjects: [
+        projects: [
           {
             name: 'library',
+            module: ['cjs', 'esm'],
           },
           {
             name: 'test',
@@ -22,9 +23,10 @@ module.exports = {
       },
       {
         name: 'routra-react',
-        tsProjects: [
+        projects: [
           {
             name: 'library',
+            module: ['cjs', 'esm'],
             references: [
               {
                 package: 'routra',

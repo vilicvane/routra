@@ -4,6 +4,6 @@
     "composite": true,
     "lib": ["dom", "esnext"],
     "experimentalDecorators": true,
-    "outDir": "../../bld/library"
+    "outDir": "../../bld/library/cjs"
   }
 }
