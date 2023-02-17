@@ -1,5 +1,5 @@
 module.exports = {
-  extends: '@mufan/code-boilerplates/typescript',
+  boilerplate: '@mufan/code-boilerplates/typescript',
   options: {
     name: 'routra-packages',
     description: `Routra`,
