@@ -6,9 +6,9 @@
   "license": "MIT",
   "author": "vilicvane",
   "exports": {
-    "types": "./bld/library/cjs/index.d.ts",
-    "require": "./bld/library/cjs/index.js",
-    "import": "./bld/library/esm/index.js"
+    "types": "./bld/library/esm/index.d.ts",
+    "import": "./bld/library/esm/index.js",
+    "require": "./bld/library/cjs/index.js"
   },
   "dependencies": {
     "multikey-map": "^0.2.1",
