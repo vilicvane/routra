@@ -8,18 +8,18 @@ import type {
 } from 'react';
 import React, {createContext, useMemo, useState} from 'react';
 import useEvent from 'react-use-event-hook';
-import type {RouteNode__, ViewEntry, ViewEntry__} from 'routra';
+import type {RouteNodeClass__, ViewEntry, ViewEntry__} from 'routra';
 
 import type {RouteComponentProps} from './route';
 
 export const RouteContext = createContext<RouteContextObject>(undefined!);
 
-export interface RouteViewProps<TRoute extends RouteNode__> {
+export interface RouteViewProps<TRoute extends RouteNodeClass__> {
   entry: ViewEntry<TRoute>;
   component: ComponentType<RouteComponentProps<TRoute>>;
 }
 
-export const RouteView = <TRoute extends RouteNode__>({
+export const RouteView = <TRoute extends RouteNodeClass__>({
   entry,
   component: Component,
 }: RouteViewProps<TRoute>): ReactElement => {

@@ -2,7 +2,7 @@ module.exports = {
   boilerplate: '@mufan/code-boilerplates/typescript',
   options: {
     name: 'routra-packages',
-    description: `Routra`,
+    description: 'Routra',
     repository: 'https://github.com/vilic/routra.git',
     license: 'MIT',
     author: 'vilicvane',

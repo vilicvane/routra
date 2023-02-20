@@ -17,7 +17,7 @@
     "packages/routra-react"
   ],
   "devDependencies": {
-    "@mufan/code": "^0.2.15",
+    "@mufan/code": "^0.2.16",
     "@mufan/eslint-plugin": "^0.1.77",
     "@types/jest": "^29.4.0",
     "@types/node": "^18.8.0",

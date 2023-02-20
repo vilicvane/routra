@@ -1,6 +1,6 @@
 import MultikeyMap from 'multikey-map';
 
-import type {RouteNode__} from './route';
+import type {RouteNodeClass__} from './route';
 import type {Router, RouterOptions, Router__} from './router';
 import {RouterClass} from './router';
 import type {SchemaRecord} from './schema';
@@ -31,12 +31,12 @@ export interface CreateViewOptions {
 export namespace routra {
   const viewCache = new MultikeyMap<unknown[], IView__>();
 
-  export function $view<TRoute extends RouteNode__>(
+  export function $view<TRoute extends RouteNodeClass__>(
     routes: TRoute[],
     options?: CreateViewOptions,
   ): IView<TRoute>;
   export function $view(
-    routes: RouteNode__[],
+    routes: RouteNodeClass__[],
     {single = false}: CreateViewOptions = {},
   ): IView__ {
     const key = [single, ...routes];

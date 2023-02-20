@@ -1,12 +1,12 @@
 import {computed, makeObservable} from 'mobx';
 
 import {createMergedObjectProxy} from '../@utils';
-import type {RouteNode__} from '../route';
+import type {RouteNodeClass__} from '../route';
 import type {MatchEntry} from '../router';
 
 import type {IViewEntry, ViewEntry} from './view-entry';
 
-abstract class View<TRoute extends RouteNode__> {
+abstract class View<TRoute extends RouteNodeClass__> {
   private _mergedEntryMap = new WeakMap<
     IViewEntry<TRoute>,
     ViewEntry<TRoute>
@@ -34,9 +34,9 @@ abstract class View<TRoute extends RouteNode__> {
         entry._match.entry.mergedState,
       ]) as ViewEntry<TRoute>;
 
-      mergedEntryMap.set(entry, mergedEntry);
+      mergedEntryMap.set(entry, mergedEntry!);
 
-      return mergedEntry;
+      return mergedEntry!;
     });
   }
 
@@ -63,12 +63,12 @@ abstract class View<TRoute extends RouteNode__> {
 
 export const AbstractView = View;
 
-export type IView<TRoute extends RouteNode__> = View<TRoute>;
+export type IView<TRoute extends RouteNodeClass__> = View<TRoute>;
 
-export type IView__ = IView<RouteNode__>;
+export type IView__ = IView<RouteNodeClass__>;
 
-export type ViewMatchEntry<TRoute extends RouteNode__> = MatchEntry & {
+export type ViewMatchEntry<TRoute extends RouteNodeClass__> = MatchEntry & {
   route: TRoute;
 };
 
-export type ViewMatchEntry__ = ViewMatchEntry<RouteNode__>;
+export type ViewMatchEntry__ = ViewMatchEntry<RouteNodeClass__>;

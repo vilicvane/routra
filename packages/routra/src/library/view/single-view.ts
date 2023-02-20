@@ -1,13 +1,13 @@
 import {computed, runInAction} from 'mobx';
 
-import type {RouteEntry, RouteNode__} from '../route';
+import type {RouteEntry, RouteNodeClass__} from '../route';
 import type {RouterOperation} from '../router';
 
 import type {ViewMatchEntry__} from './view';
 import {AbstractView} from './view';
 import {AbstractViewEntry} from './view-entry';
 
-export class SingleView__ extends AbstractView<RouteNode__> {
+export class SingleView__ extends AbstractView<RouteNodeClass__> {
   private _entry: SingleViewEntry__ | undefined;
 
   @computed
@@ -31,7 +31,7 @@ export class SingleView__ extends AbstractView<RouteNode__> {
   }
 }
 
-export class SingleViewEntry__ extends AbstractViewEntry<RouteNode__> {
+export class SingleViewEntry__ extends AbstractViewEntry<RouteNodeClass__> {
   readonly $operation: RouterOperation;
 
   private _blockedActive: RouteEntry | undefined;

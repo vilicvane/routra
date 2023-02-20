@@ -3,14 +3,14 @@ import {autorun, computed, makeObservable, observable, runInAction} from 'mobx';
 import {createMergedObjectProxy} from '../@utils';
 import type {
   RouteMergedState_,
-  RouteNode__,
+  RouteNodeClass__,
   RouteSwitchingState_,
 } from '../route';
 import type {RouterOperation} from '../router';
 
 import type {ViewMatchEntry} from './view';
 
-abstract class ViewEntryClass<TRoute extends RouteNode__> {
+abstract class ViewEntryClass<TRoute extends RouteNodeClass__> {
   readonly $key = getNextViewEntryKey();
 
   @observable
@@ -169,12 +169,13 @@ abstract class ViewEntryClass<TRoute extends RouteNode__> {
 
 export const AbstractViewEntry = ViewEntryClass;
 
-export type IViewEntry<TRoute extends RouteNode__> = ViewEntryClass<TRoute>;
+export type IViewEntry<TRoute extends RouteNodeClass__> =
+  ViewEntryClass<TRoute>;
 
-export type ViewEntry<TRoute extends RouteNode__> = ViewEntryClass<TRoute> &
-  RouteMergedState_<TRoute>;
+export type ViewEntry<TRoute extends RouteNodeClass__> =
+  ViewEntryClass<TRoute> & RouteMergedState_<TRoute>;
 
-export type ViewEntry__ = ViewEntry<RouteNode__>;
+export type ViewEntry__ = ViewEntry<RouteNodeClass__>;
 
 export interface ViewEntryRegisterTransitionOptions {
   entering?: boolean;
@@ -188,7 +189,7 @@ export interface ViewTransitionActivity {
 
 export type ViewSwitchingRelationship = 'from' | 'to';
 
-export type ViewSwitchingActivity<TRoute extends RouteNode__> =
+export type ViewSwitchingActivity<TRoute extends RouteNodeClass__> =
   RouteSwitchingState_<TRoute> & {
     $rel: ViewSwitchingRelationship;
   };

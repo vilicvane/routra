@@ -21,6 +21,8 @@ import type {RouteKey, Schema, SchemaRecord} from '../schema';
 import type {RouterBack} from './router-back';
 import {createRouterBack} from './router-back';
 
+export type Router__ = RouterClass<any>;
+
 export interface RouterOptions<TSwitchingState extends object> {
   defaultSwitchingState?: TSwitchingState;
 }
@@ -298,8 +300,6 @@ export class RouterClass<TSwitchingState extends object> {
     });
   }
 }
-
-export type Router__ = RouterClass<object>;
 
 function buildStateMap(
   path: string[],

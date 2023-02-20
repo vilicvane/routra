@@ -1,7 +1,7 @@
 import {reaction, runInAction} from 'mobx';
 import type {AssertTrue, IsEqual} from 'tslang';
 
-import type {RouteNode__, ViewSwitchingRelationship} from '../library';
+import type {RouteNodeClass__, ViewSwitchingRelationship} from '../library';
 import {RouteClass, RouteNodeClass, routra} from '../library';
 
 test('simple case 1', async () => {
@@ -293,7 +293,7 @@ test('$exact false support', () => {
       >;
 });
 
-type RouteViewEntry<T extends RouteNode__> = ReturnType<
+type RouteViewEntry<T extends RouteNodeClass__> = ReturnType<
   T['$view']
 >['$entries'][number];
 
