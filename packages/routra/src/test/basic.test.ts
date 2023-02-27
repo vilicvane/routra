@@ -1,7 +1,11 @@
 import {reaction, runInAction} from 'mobx';
 import type {AssertTrue, IsEqual} from 'tslang';
 
-import type {RouteNodeClass__, ViewSwitchingRelationship} from '../library';
+import type {
+  RouteNodeClass__,
+  RouterOperation,
+  ViewSwitchingRelationship,
+} from '../library';
 import {RouteClass, RouteNodeClass, routra} from '../library';
 
 test('simple case 1', async () => {
@@ -169,18 +173,22 @@ test('switching', async () => {
 
   expect(switchingToStates_1).toEqual([
     {
+      $operation: 'push',
       $rel: 'to',
       progress: 0,
     },
     {
+      $operation: 'push',
       $rel: 'to',
       progress: 0.1,
     },
     {
+      $operation: 'push',
       $rel: 'to',
       progress: 0.3,
     },
     {
+      $operation: 'push',
       $rel: 'to',
       progress: 0.8,
     },
@@ -188,18 +196,22 @@ test('switching', async () => {
 
   expect(switchingFromStates_1).toEqual([
     {
+      $operation: 'push',
       $rel: 'from',
       progress: 0,
     },
     {
+      $operation: 'push',
       $rel: 'from',
       progress: 0.1,
     },
     {
+      $operation: 'push',
       $rel: 'from',
       progress: 0.3,
     },
     {
+      $operation: 'push',
       $rel: 'from',
       progress: 0.8,
     },
@@ -212,6 +224,7 @@ test('switching', async () => {
   expect(router.home.$view().$entries).toMatchObject([
     {
       $switching: {
+        $operation: 'push',
         $rel: 'from',
         progress: 0.8,
       },
@@ -221,6 +234,7 @@ test('switching', async () => {
   expect(router.inbox.$view().$entries).toMatchObject([
     {
       $switching: {
+        $operation: 'push',
         $rel: 'to',
         progress: 0.8,
       },
@@ -230,6 +244,7 @@ test('switching', async () => {
   expect(router.inbox.message.$view().$entries).toMatchObject([
     {
       $switching: {
+        $operation: 'push',
         $rel: 'to',
         progress: 0.8,
       },
@@ -262,6 +277,7 @@ test('switching', async () => {
       {
         $switching:
           | {
+              $operation: RouterOperation;
               $rel: ViewSwitchingRelationship;
               progress: number;
             }

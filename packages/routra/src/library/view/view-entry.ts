@@ -107,6 +107,7 @@ abstract class ViewEntryClass<TRoute extends RouteNodeClass__> {
 
     if (switchingTo) {
       const shared = Object.freeze({
+        $operation: switchingTo.operation,
         $rel: 'to',
       });
 
@@ -120,6 +121,7 @@ abstract class ViewEntryClass<TRoute extends RouteNodeClass__> {
 
     if (route.$active && switchingFrom) {
       const shared = Object.freeze({
+        $operation: switchingFrom.operation,
         $rel: 'from',
       });
 
@@ -191,6 +193,7 @@ export type ViewSwitchingRelationship = 'from' | 'to';
 
 export type ViewSwitchingActivity<TRoute extends RouteNodeClass__> =
   RouteSwitchingState_<TRoute> & {
+    $operation: RouterOperation;
     $rel: ViewSwitchingRelationship;
   };
 
