@@ -25,12 +25,13 @@ export function createRouteOperation(
   );
 }
 
-export interface RouteOperation<
+export type RouteOperation<
   TMergedState extends object,
   TSwitchingState extends object,
-> extends RouteOperationClass<TMergedState, TSwitchingState> {
-  (statePart?: Partial<TMergedState>): RouterSetResult;
-}
+> = RouteOperationClass<TMergedState, TSwitchingState> &
+  {
+    bivariance(statePart?: Partial<TMergedState>): RouterSetResult;
+  }['bivariance'];
 
 export type RouteOperation__ = RouteOperation<object, object>;
 

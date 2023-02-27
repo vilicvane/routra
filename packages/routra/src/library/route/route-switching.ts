@@ -15,10 +15,11 @@ export function createRouteSwitching(
   }, new RouteSwitchingObject(router, ref));
 }
 
-export interface RouteSwitching<TSwitchingState extends object>
-  extends RouteSwitchingObject {
-  (state: TSwitchingState): void;
-}
+export type RouteSwitching<TSwitchingState extends object> =
+  RouteSwitchingObject &
+    {
+      bivariance(state: TSwitchingState): void;
+    }['bivariance'];
 
 export type RouteSwitching__ = RouteSwitching<object>;
 

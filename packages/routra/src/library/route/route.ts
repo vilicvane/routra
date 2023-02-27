@@ -17,11 +17,16 @@ import type {IView} from '../view';
 import type {RouteEntry} from './route-entry';
 import type {RouteOperation} from './route-operation';
 
-export type Route__ = Route_<unknown, any, any, string[]>;
-export type RouteClass__ = RouteClass<unknown, any, any, string[]>;
+export type Route__ = Route_<unknown, object, object, string[]>;
+export type RouteClass__ = RouteClass<unknown, object, object, string[]>;
 
-export type RouteNode__ = RouteNode_<unknown, any, any, string[]>;
-export type RouteNodeClass__ = RouteNodeClass<unknown, any, any, string[]>;
+export type RouteNode__ = RouteNode_<unknown, object, object, string[]>;
+export type RouteNodeClass__ = RouteNodeClass<
+  unknown,
+  object,
+  object,
+  string[]
+>;
 
 export function createRoute(
   router: Router__,
