@@ -322,13 +322,43 @@ function buildStateMap(
   let upperSchemas = schemas;
 
   for (const [index, key] of commonStartKeys.entries()) {
-    const state = stateMapUpdate.get(index);
+    let schema = upperSchemas[key];
 
-    stateMap.set(index, state ? observable(state) : activeStateMap.get(index)!);
+    if (schema === true) {
+      schema = {};
+    }
 
-    const schema = upperSchemas[key];
+    if (stateMapUpdate.has(index)) {
+      let state: object | undefined;
 
-    upperSchemas = typeof schema === 'object' ? schema : {};
+      if ('$state' in schema) {
+        // It is legit for this to be undefined in case of $state is a function
+        // accepting no argument or undefined argument.
+        const stateUpdate = stateMapUpdate.get(index);
+
+        const schemaState = schema.$state;
+
+        if (typeof schemaState === 'function') {
+          state = schemaState(stateUpdate);
+        } else {
+          state = stateUpdate;
+        }
+      }
+
+      if (state === undefined) {
+        throw new Error(
+          `State ${JSON.stringify(
+            key,
+          )} is missing and no default value is provided`,
+        );
+      }
+
+      stateMap.set(index, observable(state));
+    } else {
+      stateMap.set(index, activeStateMap.get(index)!);
+    }
+
+    upperSchemas = schema;
   }
 
   for (const [index, key] of (path as RouteKey[])
@@ -342,18 +372,28 @@ function buildStateMap(
 
     const stateIndex = commonStartKeys.length + index;
 
-    let state = stateMapUpdate.get(stateIndex);
+    let state: object | undefined;
 
-    if (state === undefined) {
-      if ('$state' in schema) {
-        state = schema.$state;
+    if ('$state' in schema) {
+      const schemaState = schema.$state;
 
-        if (typeof state === 'function') {
-          state = state();
+      if (stateMapUpdate.has(stateIndex)) {
+        const stateUpdate = stateMapUpdate.get(stateIndex);
+
+        if (typeof schemaState === 'function') {
+          state = schemaState(stateUpdate);
+        } else {
+          state = stateUpdate;
         }
       } else {
-        state = {};
+        if (typeof schemaState === 'function') {
+          state = schemaState();
+        } else {
+          state = schemaState;
+        }
       }
+    } else {
+      state = {};
     }
 
     if (state === undefined) {

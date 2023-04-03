@@ -1,6 +1,10 @@
 import {computed, makeObservable} from 'mobx';
 
-import type {ChildSchemaFallback_, SchemaState_} from '../@schema';
+import type {
+  ChildSchemaFallback_,
+  SchemaStateInput_,
+  SchemaState_,
+} from '../@schema';
 import type {OverrideObject_} from '../@utils';
 import {isArrayEqual, isArrayStartedWith} from '../@utils';
 import type {
@@ -185,7 +189,7 @@ interface RouteNodeStateSetterBivariance<
   TPath extends string[],
 > {
   bivariance(
-    state: SchemaState_<TSchema>,
+    state: SchemaStateInput_<TSchema>,
   ): RouteNodeClass<TSchema, TSwitchingState, TMergedState, TPath> &
     RouteRoutes_<TSchema, TSwitchingState, TMergedState, TPath>;
 }
@@ -247,7 +251,7 @@ interface RouteStateSetterBivariance<
   TPath extends string[],
 > {
   bivariance(
-    state: SchemaState_<TSchema>,
+    state: SchemaStateInput_<TSchema>,
   ): RouteClass<TSchema, TSwitchingState, TMergedState, TPath> &
     RouteRoutes_<TSchema, TSwitchingState, TMergedState, TPath>;
 }

@@ -33,7 +33,7 @@ export type SchemaRecord = {
 };
 
 export type Schema = {
-  $state?: object | (() => object);
+  $state?: object | ((input?: object) => object);
   $exact?: boolean;
 } & SchemaRecord;
 
