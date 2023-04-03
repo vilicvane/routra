@@ -3,7 +3,10 @@ export type SchemaStateInput_<TSchema> = TSchema extends SchemaStatePart<
 >
   ? TState extends () => unknown
     ? void
-    : TState extends (input: infer TStateInput) => unknown
+    : TState extends (
+        input: infer TStateInput,
+        upperMergedState: infer _TUpperMergedState,
+      ) => unknown
     ? TStateInput
     : TState
   : object;
@@ -11,7 +14,10 @@ export type SchemaStateInput_<TSchema> = TSchema extends SchemaStatePart<
 export type SchemaState_<TSchema> = TSchema extends SchemaStatePart<
   infer TState
 >
-  ? TState extends (input: infer _TStateInput) => infer TState
+  ? TState extends (
+      input: infer _TStateInput,
+      upperMergedState: infer _TUpperMergedState,
+    ) => infer TState
     ? TState
     : TState
   : object;

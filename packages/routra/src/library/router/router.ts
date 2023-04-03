@@ -2,7 +2,7 @@ import type {IObservableValue} from 'mobx';
 import {makeObservable, observable, runInAction, when} from 'mobx';
 
 import type {ChildSchemaFallback_} from '../@schema';
-import {getCommonStartOfTwoArray} from '../@utils';
+import {createMergedObjectProxy, getCommonStartOfTwoArray} from '../@utils';
 import type {
   RouteOperation__,
   RouteSwitching,
@@ -339,7 +339,7 @@ function buildStateMap(
         const schemaState = schema.$state;
 
         if (typeof schemaState === 'function') {
-          state = schemaState(stateUpdate);
+          state = schemaState(stateUpdate, createMergedState(stateMap));
         } else {
           state = stateUpdate;
         }
@@ -381,13 +381,13 @@ function buildStateMap(
         const stateUpdate = stateMapUpdate.get(stateIndex);
 
         if (typeof schemaState === 'function') {
-          state = schemaState(stateUpdate);
+          state = schemaState(stateUpdate, createMergedState(stateMap));
         } else {
           state = stateUpdate;
         }
       } else {
         if (typeof schemaState === 'function') {
-          state = schemaState();
+          state = schemaState(undefined, createMergedState(stateMap));
         } else {
           state = schemaState;
         }
@@ -410,6 +410,12 @@ function buildStateMap(
   }
 
   return stateMap;
+
+  function createMergedState(stateMap: Map<number, object>): object {
+    const states = Array.from(stateMap.values()).reverse();
+
+    return createMergedObjectProxy(states);
+  }
 }
 
 export type RouterOperation = 'reset' | 'push' | 'replace' | 'back';
