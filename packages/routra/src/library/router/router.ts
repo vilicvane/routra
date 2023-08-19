@@ -43,7 +43,9 @@ export class RouterClass<TSwitchingState extends object> {
   private readonly _queue: [RouteTarget, () => void][] = [];
 
   constructor(
+    /** @internal */
     private _schemas: SchemaRecord,
+    /** @internal */
     private _options: RouterOptions<TSwitchingState>,
   ) {
     makeObservable(this);
@@ -64,6 +66,10 @@ export class RouterClass<TSwitchingState extends object> {
         new Map(),
       );
     }
+  }
+
+  get $active(): RouteEntry | undefined {
+    return this._active?.entry;
   }
 
   get $back(): RouterBack<TSwitchingState> {
