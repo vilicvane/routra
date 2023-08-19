@@ -68,8 +68,12 @@ export class RouterClass<TSwitchingState extends object> {
     }
   }
 
-  get $active(): RouteEntry | undefined {
-    return this._active?.entry;
+  get $path(): string[] | undefined {
+    return this._active?.entry.path;
+  }
+
+  get $state(): object | undefined {
+    return this._active?.entry.mergedState;
   }
 
   get $back(): RouterBack<TSwitchingState> {
