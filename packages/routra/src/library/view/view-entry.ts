@@ -140,6 +140,7 @@ abstract class ViewEntryClass<TRoute extends RouteNodeClass__> {
 
   abstract get $operation(): RouterOperation;
 
+  /** @internal */
   abstract get _match(): ViewMatchEntry<TRoute>;
 
   protected abstract get _entering(): boolean;

@@ -202,7 +202,7 @@ export class RouterClass<TSwitchingState extends object> {
   /** @internal */
   _set(operation: RouterOperation, target: RouteTarget): RouterSetResult {
     return {
-      $completed: new Promise<void>(resolve =>
+      $completed: new Promise(resolve =>
         this._startTransition(operation, target, resolve),
       ),
     };
