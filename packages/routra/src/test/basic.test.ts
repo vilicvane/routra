@@ -309,6 +309,34 @@ test('$exact false support', () => {
       >;
 });
 
+test('$backTo', async () => {
+  const router_1 = routra({
+    home: {
+      hello: true,
+      world: true,
+    },
+    about: true,
+  });
+
+  await router_1.home.$reset().$completed;
+  await router_1.home.hello.$push().$completed;
+
+  expect(router_1.home.$active).toBe(true);
+  expect(router_1.home.hello.$active).toBe(true);
+
+  await router_1.about.$push().$completed;
+
+  expect(router_1.home.$active).toBe(false);
+  expect(router_1.home.hello.$active).toBe(false);
+  expect(router_1.about.$active).toBe(true);
+
+  await router_1.$backTo(router_1.home)?.$go().$completed;
+
+  expect(router_1.home.$active).toBe(true);
+  expect(router_1.home.hello.$active).toBe(true);
+  expect(router_1.about.$active).toBe(false);
+});
+
 type RouteViewEntry<T extends RouteNodeClass__> = ReturnType<
   T['$view']
 >['$entries'][number];

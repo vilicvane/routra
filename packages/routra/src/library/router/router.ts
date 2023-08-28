@@ -2,8 +2,13 @@ import type {IObservableValue} from 'mobx';
 import {makeObservable, observable, runInAction, when} from 'mobx';
 
 import type {ChildSchemaFallback_} from '../@schema';
-import {createMergedObjectProxy, getCommonStartOfTwoArray} from '../@utils';
+import {
+  createMergedObjectProxy,
+  getCommonStartOfTwoArray,
+  isArrayStartedWith,
+} from '../@utils';
 import type {
+  RouteNode__,
   RouteOperation__,
   RouteSwitching,
   RouteSwitching__,
@@ -90,6 +95,28 @@ export class RouterClass<TSwitchingState extends object> {
 
   get $ableToBack(): boolean {
     return this._active?.entry.previous !== undefined;
+  }
+
+  $backTo(
+    route: RouteNode__ | RouteNode__[],
+  ): RouterBack<TSwitchingState> | undefined {
+    const routes = Array.isArray(route) ? route : [route];
+
+    let {
+      entry: {previous: entry},
+    } = this._requireActive();
+
+    outer: while (entry) {
+      for (const route of routes) {
+        if (isArrayStartedWith(entry.path, route.$path)) {
+          break outer;
+        }
+      }
+
+      entry = entry.previous;
+    }
+
+    return entry ? createRouterBack(this, entry) : undefined;
   }
 
   /** @internal */

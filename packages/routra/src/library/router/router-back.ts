@@ -42,4 +42,11 @@ export class RouterBackClass<TSwitchingState extends object> {
       switchingState,
     );
   }
+
+  $go(): RouterSetResult {
+    return this.router._set('back', {
+      ...this.target,
+      statePart: undefined,
+    });
+  }
 }
