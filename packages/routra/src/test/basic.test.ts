@@ -337,6 +337,76 @@ test('$backTo', async () => {
   expect(router_1.about.$active).toBe(false);
 });
 
+test('$snapshot', async () => {
+  const schema = {
+    home: {
+      hello: true,
+      world: true,
+    },
+    about: true,
+  } as const;
+
+  const router_1 = routra(schema);
+
+  await router_1.home.$reset().$completed;
+  await router_1.home.hello.$push().$completed;
+  await router_1.about.$push().$completed;
+
+  const snapshot = router_1.$snapshot!;
+
+  expect(snapshot).toMatchInlineSnapshot(`
+    {
+      "entry": {
+        "path": [
+          "about",
+        ],
+        "previous": {
+          "path": [
+            "home",
+            "hello",
+          ],
+          "previous": {
+            "path": [
+              "home",
+            ],
+            "previous": undefined,
+            "states": [
+              1,
+            ],
+          },
+          "states": [
+            1,
+            2,
+          ],
+        },
+        "states": [
+          0,
+        ],
+      },
+      "operation": "push",
+      "states": [
+        {},
+        {},
+        {},
+      ],
+    }
+  `);
+
+  const router_2 = routra(schema);
+
+  router_2.$restore(snapshot);
+
+  expect(router_2.home.$active).toBe(false);
+  expect(router_2.home.hello.$active).toBe(false);
+  expect(router_2.about.$active).toBe(true);
+
+  await router_2.$backTo(router_2.home)?.$go().$completed;
+
+  expect(router_2.home.$active).toBe(true);
+  expect(router_2.home.hello.$active).toBe(true);
+  expect(router_2.about.$active).toBe(false);
+});
+
 type RouteViewEntry<T extends RouteNodeClass__> = ReturnType<
   T['$view']
 >['$entries'][number];

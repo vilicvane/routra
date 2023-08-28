@@ -81,6 +81,53 @@ export class RouterClass<TSwitchingState extends object> {
     return this._active?.entry.mergedState;
   }
 
+  get $snapshot(): Snapshot | undefined {
+    const activeEntry = this._active;
+
+    if (!activeEntry) {
+      return undefined;
+    }
+
+    const {
+      operation,
+      entry: {target},
+    } = activeEntry;
+
+    const states: object[] = [];
+
+    return {
+      operation,
+      entry: buildEntry(target),
+      states,
+    };
+
+    function buildEntry({
+      path,
+      stateMap,
+      previous,
+    }: RouteTarget): SnapshotEntry {
+      return {
+        path,
+        states: Array.from(path.keys()).map(index => {
+          const state = stateMap.get(index);
+
+          if (state) {
+            const stateIndex = states.indexOf(state);
+
+            if (stateIndex >= 0) {
+              return stateIndex;
+            } else {
+              return states.push(state) - 1;
+            }
+          } else {
+            return -1;
+          }
+        }),
+        previous: previous && buildEntry(previous),
+      };
+    }
+  }
+
   get $back(): RouterBack<TSwitchingState> {
     const {
       entry: {previous: entry},
@@ -117,6 +164,48 @@ export class RouterClass<TSwitchingState extends object> {
     }
 
     return entry ? createRouterBack(this, entry) : undefined;
+  }
+
+  $restore({operation, entry, states}: Snapshot): void {
+    if (this._transition || this._switching) {
+      throw new Error('Cannot restore during transition or switching');
+    }
+
+    states = states.map(state => observable(state));
+
+    const target = restoreTarget(entry);
+
+    runInAction(() => {
+      this._active = {
+        operation,
+        entry: new RouteEntry(
+          this,
+          target.path,
+          target.stateMap,
+          target.previous,
+          undefined,
+        ),
+      };
+    });
+
+    function restoreTarget(entry: SnapshotEntry): RouteTarget {
+      const {path, states: stateIndexes, previous} = entry;
+
+      const stateMap = new Map<number, object>();
+
+      for (const [pathIndex, stateIndex] of stateIndexes.entries()) {
+        if (stateIndex >= 0) {
+          stateMap.set(pathIndex, states[stateIndex]);
+        }
+      }
+
+      return {
+        path,
+        stateMap,
+        previous: previous && restoreTarget(previous),
+        statePart: undefined,
+      };
+    }
   }
 
   /** @internal */
@@ -507,3 +596,20 @@ export type RouterSwitching_<TRouter> = RouteSwitching<
 
 export type RouterSwitching<TRouter extends Router__> =
   RouterSwitching_<TRouter>;
+
+export interface SnapshotEntry {
+  path: string[];
+  /**
+   * Indexed by path segment index; and the value is the index of the state in
+   * snapshot. Using a separate states array to preserve referencing same
+   * objects by different entries.
+   */
+  states: number[];
+  previous?: SnapshotEntry;
+}
+
+export interface Snapshot {
+  operation: RouterOperation;
+  entry: SnapshotEntry;
+  states: object[];
+}
