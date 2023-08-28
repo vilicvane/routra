@@ -1,6 +1,6 @@
 {
   "name": "routra-react",
-  "version": "0.2.0-alpha.5",
+  "version": "0.2.0-alpha.6",
   "repository": "https://github.com/vilic/routra.git",
   "license": "MIT",
   "author": "vilicvane",
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "react-use-event-hook": "^0.9.3",
-    "routra": "^0.2.0-alpha.5",
+    "routra": "^0.2.0-alpha.6",
     "tslib": "^2.5.0"
   },
   "peerDependencies": {
