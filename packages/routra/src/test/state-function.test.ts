@@ -44,18 +44,27 @@ test('state function', async () => {
   expect(router.home.hello.$view().$entries[0].name).toBe('wsh');
   expect(router.home.hello.$view().$entries[0].userUpperCase).toBe('VILICVANE');
 
+  router.$restore(router.$snapshot!);
+
+  expect(router.home.hello.$view().$entries[0].name).toBe('wsh');
+  expect(router.home.hello.$view().$entries[0].userUpperCase).toBe('VILICVANE');
+
   await router.home.world.$push().$completed;
 
   // `world` here to use default.
   expect(router.home.world.$view().$entries[0].count).toBe(1);
 
+  router.$restore(router.$snapshot!);
+
+  expect(router.home.world.$view().$entries[0].count).toBe(2);
+
   // `world()` here to update state.
   await router.home.world().$push().$completed;
 
-  expect(router.home.world.$view().$entries[0].count).toBe(2);
+  expect(router.home.world.$view().$entries[0].count).toBe(3);
 
   // `world` here to reuse state.
   await router.home.world.$push().$completed;
 
-  expect(router.home.world.$view().$entries[0].count).toBe(2);
+  expect(router.home.world.$view().$entries[0].count).toBe(3);
 });

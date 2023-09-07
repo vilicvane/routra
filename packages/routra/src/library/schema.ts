@@ -35,7 +35,7 @@ export type SchemaRecord = {
 export type Schema = {
   $state?:
     | object
-    | ((input: object | undefined, upperMergedState: object) => object);
+    | ((input: unknown | undefined, upperMergedState: object) => object);
   $exact?: boolean;
 } & SchemaRecord;
 

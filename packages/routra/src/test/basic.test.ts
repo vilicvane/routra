@@ -357,15 +357,25 @@ test('$snapshot', async () => {
   expect(snapshot).toMatchInlineSnapshot(`
     {
       "entry": {
+        "inputs": [
+          undefined,
+        ],
         "path": [
           "about",
         ],
         "previous": {
+          "inputs": [
+            undefined,
+            undefined,
+          ],
           "path": [
             "home",
             "hello",
           ],
           "previous": {
+            "inputs": [
+              undefined,
+            ],
             "path": [
               "home",
             ],

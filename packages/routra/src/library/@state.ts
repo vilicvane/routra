@@ -1,3 +1,5 @@
+import {createMergedObjectProxy} from './@utils';
+
 export function mergeStateMapWithPart(
   path: string[],
   stateMap: Map<number, object>,
@@ -23,6 +25,25 @@ export function mergeStateMapWithPart(
       `Failed to find value of ${Array.from(pendingStatePartMap.keys(), key =>
         JSON.stringify(key),
       ).join('/')} to update`,
+    );
+  }
+}
+
+export function createMergedState(stateMap: Map<number, object>): object {
+  const states = Array.from(stateMap.values()).reverse();
+
+  return createMergedObjectProxy(states);
+}
+
+export function assertState<T>(
+  state: T,
+  key: string,
+): asserts state is Exclude<T, undefined> {
+  if (state === undefined) {
+    throw new Error(
+      `State ${JSON.stringify(
+        key,
+      )} is missing and no default value is provided`,
     );
   }
 }

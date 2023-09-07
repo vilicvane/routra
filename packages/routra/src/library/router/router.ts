@@ -1,12 +1,11 @@
 import type {IObservableValue} from 'mobx';
-import {makeObservable, observable, runInAction, when} from 'mobx';
+import {makeObservable, observable, runInAction, toJS, when} from 'mobx';
+import MultikeyMap from 'multikey-map';
 
 import type {ChildSchemaFallback_} from '../@schema';
-import {
-  createMergedObjectProxy,
-  getCommonStartOfTwoArray,
-  isArrayStartedWith,
-} from '../@utils';
+import {getChildSchema} from '../@schema';
+import {assertState, createMergedState} from '../@state';
+import {getCommonStartOfTwoArray, isArrayStartedWith} from '../@utils';
 import type {
   RouteNode__,
   RouteOperation__,
@@ -45,7 +44,14 @@ export class RouterClass<TSwitchingState extends object> {
   @observable.ref
   _switching: SwitchingEntry | undefined;
 
+  /** @internal */
   private readonly _queue: [RouteTarget, () => void][] = [];
+
+  /** @internal */
+  private readonly _stateInputMap = new MultikeyMap<
+    [object, Function],
+    unknown
+  >();
 
   constructor(
     /** @internal */
@@ -88,17 +94,20 @@ export class RouterClass<TSwitchingState extends object> {
       return undefined;
     }
 
+    const stateInputMap = this._stateInputMap;
+    const schemas = this._schemas;
+
     const {
       operation,
       entry: {target},
     } = activeEntry;
 
-    const states: object[] = [];
+    const stateObjects: object[] = [];
 
     return {
       operation,
       entry: buildEntry(target),
-      states,
+      states: stateObjects.map(stateObject => toJS(stateObject)),
     };
 
     function buildEntry({
@@ -106,23 +115,42 @@ export class RouterClass<TSwitchingState extends object> {
       stateMap,
       previous,
     }: RouteTarget): SnapshotEntry {
+      const inputs: unknown[] = [];
+      const states: number[] = [];
+
+      let upperSchemas = schemas;
+
+      for (const [index, key] of path.entries()) {
+        const schema = getChildSchema(upperSchemas, key as RouteKey);
+
+        const state = stateMap.get(index)!;
+
+        const {$state: schemaState} = schema;
+
+        if (typeof schemaState === 'function') {
+          const input = stateInputMap.get([state, schemaState]);
+
+          inputs.push(input);
+          states.push(-1);
+        } else {
+          inputs.push(undefined);
+
+          const stateIndex = stateObjects.indexOf(state);
+
+          if (stateIndex >= 0) {
+            states.push(stateIndex);
+          } else {
+            states.push(stateObjects.push(state) - 1);
+          }
+        }
+
+        upperSchemas = schema;
+      }
+
       return {
         path,
-        states: Array.from(path.keys()).map(index => {
-          const state = stateMap.get(index);
-
-          if (state) {
-            const stateIndex = states.indexOf(state);
-
-            if (stateIndex >= 0) {
-              return stateIndex;
-            } else {
-              return states.push(state) - 1;
-            }
-          } else {
-            return -1;
-          }
-        }),
+        inputs,
+        states,
         previous: previous && buildEntry(previous),
       };
     }
@@ -171,7 +199,11 @@ export class RouterClass<TSwitchingState extends object> {
       throw new Error('Cannot restore during transition or switching');
     }
 
-    states = states.map(state => observable(state));
+    const observableStates = states.map(state => observable(state));
+
+    const stateInputMap = this._stateInputMap;
+
+    const schemas = this._schemas;
 
     const target = restoreTarget(entry);
 
@@ -189,14 +221,46 @@ export class RouterClass<TSwitchingState extends object> {
     });
 
     function restoreTarget(entry: SnapshotEntry): RouteTarget {
-      const {path, states: stateIndexes, previous} = entry;
+      const {
+        path,
+        // Adding defaults for compatibility
+        inputs = [],
+        states: stateIndexes,
+        previous,
+      } = entry;
 
       const stateMap = new Map<number, object>();
 
+      let upperSchemas = schemas;
+
       for (const [pathIndex, stateIndex] of stateIndexes.entries()) {
-        if (stateIndex >= 0) {
-          stateMap.set(pathIndex, states[stateIndex]);
+        const key = path[pathIndex] as RouteKey;
+
+        const schema = getChildSchema(upperSchemas, key);
+        const {$state: schemaState} = schema;
+
+        if (typeof schemaState === 'function') {
+          const input = inputs[pathIndex];
+          const state = schemaState(input, createMergedState(stateMap));
+
+          assertState(state, key);
+
+          const observableState = observable(state);
+
+          stateInputMap.set([observableState, schemaState], input);
+          stateMap.set(pathIndex, observableState);
+        } else {
+          const state =
+            stateIndex >= 0 ? observableStates[stateIndex] : undefined;
+
+          if (!state) {
+            throw new TypeError('State missing in snapshot');
+          }
+
+          stateMap.set(pathIndex, state);
         }
+
+        upperSchemas = schema;
       }
 
       return {
@@ -213,11 +277,10 @@ export class RouterClass<TSwitchingState extends object> {
     path: string[],
     stateMapUpdate: Map<number, object>,
   ): RouteOperation__ {
-    const stateMap = buildStateMap(
+    const stateMap = this._buildStateMap(
       path,
       stateMapUpdate,
       this._active?.entry,
-      this._schemas,
     );
 
     return createRouteOperation(this, 'reset', {
@@ -231,7 +294,7 @@ export class RouterClass<TSwitchingState extends object> {
   _push(path: string[], stateMapUpdate: Map<number, object>): RouteOperation__ {
     const {entry} = this._requireActive();
 
-    const stateMap = buildStateMap(path, stateMapUpdate, entry, this._schemas);
+    const stateMap = this._buildStateMap(path, stateMapUpdate, entry);
 
     return createRouteOperation(this, 'push', {
       path,
@@ -247,7 +310,7 @@ export class RouterClass<TSwitchingState extends object> {
   ): RouteOperation__ {
     const {entry} = this._requireActive();
 
-    const stateMap = buildStateMap(path, stateMapUpdate, entry, this._schemas);
+    const stateMap = this._buildStateMap(path, stateMapUpdate, entry);
 
     return createRouteOperation(this, 'replace', {
       path,
@@ -425,122 +488,115 @@ export class RouterClass<TSwitchingState extends object> {
       }
     });
   }
-}
 
-function buildStateMap(
-  path: string[],
-  stateMapUpdate: Map<number, object>,
-  active: RouteEntry | undefined,
-  schemas: SchemaRecord,
-): Map<number, object> {
-  const {path: activePath, stateMap: activeStateMap} = active ?? {
-    path: [],
-    stateMap: new Map<number, object>(),
-  };
+  private _buildStateMap(
+    path: string[],
+    stateMapUpdate: Map<number, object>,
+    active: RouteEntry | undefined,
+  ): Map<number, object> {
+    const {path: activePath, stateMap: activeStateMap} = active ?? {
+      path: [],
+      stateMap: new Map<number, object>(),
+    };
 
-  const stateMap = new Map<number, object>();
+    const stateInputMap = this._stateInputMap;
 
-  const commonStartKeys = getCommonStartOfTwoArray(
-    path,
-    activePath,
-  ) as RouteKey[];
+    const stateMap = new Map<number, object>();
 
-  let upperSchemas = schemas;
+    const commonStartKeys = getCommonStartOfTwoArray(
+      path,
+      activePath,
+    ) as RouteKey[];
 
-  for (const [index, key] of commonStartKeys.entries()) {
-    let schema = upperSchemas[key];
+    let upperSchemas = this._schemas;
 
-    if (schema === true) {
-      schema = {};
+    for (const [index, key] of commonStartKeys.entries()) {
+      const schema = getChildSchema(upperSchemas, key);
+
+      if (stateMapUpdate.has(index)) {
+        let state: object | undefined;
+        let stateFunctionAndInput: [Function, unknown] | undefined;
+
+        if ('$state' in schema) {
+          // It is legit for this to be undefined in case of $state is a function
+          // accepting no argument or undefined argument.
+          const stateUpdate = stateMapUpdate.get(index);
+
+          const schemaState = schema.$state;
+
+          if (typeof schemaState === 'function') {
+            state = schemaState(stateUpdate, createMergedState(stateMap));
+            stateFunctionAndInput = [schemaState, stateUpdate];
+          } else {
+            state = stateUpdate;
+          }
+        }
+
+        assertState(state, key);
+
+        const observableState = observable(state);
+
+        if (stateFunctionAndInput) {
+          const [stateFunction, stateInput] = stateFunctionAndInput;
+          stateInputMap.set([observableState, stateFunction], stateInput);
+        }
+
+        stateMap.set(index, observableState);
+      } else {
+        stateMap.set(index, activeStateMap.get(index)!);
+      }
+
+      upperSchemas = schema;
     }
 
-    if (stateMapUpdate.has(index)) {
+    for (const [index, key] of (path as RouteKey[])
+      .slice(commonStartKeys.length)
+      .entries()) {
+      const schema = getChildSchema(upperSchemas, key);
+
+      const stateIndex = commonStartKeys.length + index;
+
       let state: object | undefined;
+      let stateFunctionAndInput: [Function, unknown] | undefined;
 
       if ('$state' in schema) {
-        // It is legit for this to be undefined in case of $state is a function
-        // accepting no argument or undefined argument.
-        const stateUpdate = stateMapUpdate.get(index);
-
         const schemaState = schema.$state;
 
-        if (typeof schemaState === 'function') {
-          state = schemaState(stateUpdate, createMergedState(stateMap));
+        if (stateMapUpdate.has(stateIndex)) {
+          const stateUpdate = stateMapUpdate.get(stateIndex);
+
+          if (typeof schemaState === 'function') {
+            state = schemaState(stateUpdate, createMergedState(stateMap));
+            stateFunctionAndInput = [schemaState, stateUpdate];
+          } else {
+            state = stateUpdate;
+          }
         } else {
-          state = stateUpdate;
-        }
-      }
-
-      if (state === undefined) {
-        throw new Error(
-          `State ${JSON.stringify(
-            key,
-          )} is missing and no default value is provided`,
-        );
-      }
-
-      stateMap.set(index, observable(state));
-    } else {
-      stateMap.set(index, activeStateMap.get(index)!);
-    }
-
-    upperSchemas = schema;
-  }
-
-  for (const [index, key] of (path as RouteKey[])
-    .slice(commonStartKeys.length)
-    .entries()) {
-    let schema = upperSchemas[key];
-
-    if (schema === true) {
-      schema = {};
-    }
-
-    const stateIndex = commonStartKeys.length + index;
-
-    let state: object | undefined;
-
-    if ('$state' in schema) {
-      const schemaState = schema.$state;
-
-      if (stateMapUpdate.has(stateIndex)) {
-        const stateUpdate = stateMapUpdate.get(stateIndex);
-
-        if (typeof schemaState === 'function') {
-          state = schemaState(stateUpdate, createMergedState(stateMap));
-        } else {
-          state = stateUpdate;
+          if (typeof schemaState === 'function') {
+            state = schemaState(undefined, createMergedState(stateMap));
+          } else {
+            state = schemaState;
+          }
         }
       } else {
-        if (typeof schemaState === 'function') {
-          state = schemaState(undefined, createMergedState(stateMap));
-        } else {
-          state = schemaState;
-        }
+        state = {};
       }
-    } else {
-      state = {};
+
+      assertState(state, key);
+
+      const observableState = observable(state);
+
+      if (stateFunctionAndInput) {
+        const [stateFunction, stateInput] = stateFunctionAndInput;
+        stateInputMap.set([observableState, stateFunction], stateInput);
+      }
+
+      stateMap.set(stateIndex, observableState);
+
+      upperSchemas = schema;
     }
 
-    if (state === undefined) {
-      throw new Error(
-        `State ${JSON.stringify(
-          key,
-        )} is missing and no default value is provided`,
-      );
-    }
-
-    stateMap.set(stateIndex, observable(state));
-
-    upperSchemas = schema;
-  }
-
-  return stateMap;
-
-  function createMergedState(stateMap: Map<number, object>): object {
-    const states = Array.from(stateMap.values()).reverse();
-
-    return createMergedObjectProxy(states);
+    return stateMap;
   }
 }
 
@@ -599,6 +655,7 @@ export type RouterSwitching<TRouter extends Router__> =
 
 export interface SnapshotEntry {
   path: string[];
+  inputs: unknown[];
   /**
    * Indexed by path segment index; and the value is the index of the state in
    * snapshot. Using a separate states array to preserve referencing same
