@@ -101,11 +101,13 @@ abstract class ViewEntryClass<TRoute extends RouteNodeClass__> {
 
   @computed
   get $switching(): ViewSwitchingActivity<TRoute> | undefined {
-    const route = this._match.route;
+    const match = this._match;
+
+    const route = match.route;
 
     const switchingTo = route._switching;
 
-    if (switchingTo) {
+    if (switchingTo && match.entry === switchingTo.entry) {
       const shared = Object.freeze({
         $operation: switchingTo.operation,
         $rel: 'to',

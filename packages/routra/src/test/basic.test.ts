@@ -271,6 +271,37 @@ test('switching', async () => {
     },
   ]);
 
+  const switching_2 = router.inbox
+    .message({id: 'abc'})
+    .$replace.$switch({}, {progress: 0});
+
+  expect(router.inbox.message.$view().$entries).toMatchObject([
+    {
+      $switching: {
+        $operation: 'replace',
+        $rel: 'from',
+        progress: 0,
+      },
+    },
+    {
+      $switching: {
+        $operation: 'replace',
+        $rel: 'to',
+        progress: 0,
+      },
+    },
+  ]);
+
+  switching_2.$complete();
+
+  expect(router.inbox.message.$view().$entries).toMatchObject([
+    {
+      $entering: undefined,
+      $leaving: undefined,
+      $switching: undefined,
+    },
+  ]);
+
   type _ = AssertTrue<
     IsEqual<
       Pick<RouteViewEntry<typeof router.home>, '$switching'>,
