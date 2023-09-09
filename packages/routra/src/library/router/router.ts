@@ -45,7 +45,11 @@ export class RouterClass<TSwitchingState extends object> {
   _switching: SwitchingEntry | undefined;
 
   /** @internal */
-  private readonly _queue: [RouteTarget, () => void][] = [];
+  private readonly _queue: [
+    operation: RouterOperation,
+    targetBuilder: () => RouteTarget,
+    complete: () => void,
+  ][] = [];
 
   /** @internal */
   private readonly _stateInputMap = new MultikeyMap<
@@ -277,29 +281,33 @@ export class RouterClass<TSwitchingState extends object> {
     path: string[],
     stateMapUpdate: Map<number, object>,
   ): RouteOperation__ {
-    const stateMap = this._buildStateMap(
-      path,
-      stateMapUpdate,
-      this._active?.entry,
-    );
+    return createRouteOperation(this, 'reset', () => {
+      const stateMap = this._buildStateMap(
+        path,
+        stateMapUpdate,
+        this._active?.entry,
+      );
 
-    return createRouteOperation(this, 'reset', {
-      path,
-      stateMap,
-      previous: undefined,
+      return {
+        path,
+        stateMap,
+        previous: undefined,
+      };
     });
   }
 
   /** @internal */
   _push(path: string[], stateMapUpdate: Map<number, object>): RouteOperation__ {
-    const {entry} = this._requireActive();
+    return createRouteOperation(this, 'push', () => {
+      const {entry} = this._requireActive();
 
-    const stateMap = this._buildStateMap(path, stateMapUpdate, entry);
+      const stateMap = this._buildStateMap(path, stateMapUpdate, entry);
 
-    return createRouteOperation(this, 'push', {
-      path,
-      stateMap,
-      previous: entry.target,
+      return {
+        path,
+        stateMap,
+        previous: entry.target,
+      };
     });
   }
 
@@ -308,14 +316,16 @@ export class RouterClass<TSwitchingState extends object> {
     path: string[],
     stateMapUpdate: Map<number, object>,
   ): RouteOperation__ {
-    const {entry} = this._requireActive();
+    return createRouteOperation(this, 'replace', () => {
+      const {entry} = this._requireActive();
 
-    const stateMap = this._buildStateMap(path, stateMapUpdate, entry);
+      const stateMap = this._buildStateMap(path, stateMapUpdate, entry);
 
-    return createRouteOperation(this, 'replace', {
-      path,
-      stateMap,
-      previous: entry.previous,
+      return {
+        path,
+        stateMap,
+        previous: entry.previous,
+      };
     });
   }
 
@@ -379,10 +389,13 @@ export class RouterClass<TSwitchingState extends object> {
   }
 
   /** @internal */
-  _set(operation: RouterOperation, target: RouteTarget): RouterSetResult {
+  _set(
+    operation: RouterOperation,
+    targetBuilder: () => RouteTarget,
+  ): RouterSetResult {
     return {
       $completed: new Promise(resolve =>
-        this._startTransition(operation, target, resolve),
+        this._startTransition(operation, targetBuilder, resolve),
       ),
     };
   }
@@ -426,13 +439,15 @@ export class RouterClass<TSwitchingState extends object> {
 
   private _startTransition(
     operation: RouterOperation,
-    target: RouteTarget,
+    targetBuilder: () => RouteTarget,
     complete: () => void,
   ): void {
     if (this._transition) {
-      this._queue.push([target, complete]);
+      this._queue.push([operation, targetBuilder, complete]);
       return;
     }
+
+    const target = targetBuilder();
 
     const activeRouteEntry = this._active?.entry;
 
@@ -482,9 +497,9 @@ export class RouterClass<TSwitchingState extends object> {
       const next = this._queue.shift();
 
       if (next) {
-        const [target, complete] = next;
+        const [operation, targetBuilder, complete] = next;
 
-        this._startTransition(operation, target, complete);
+        this._startTransition(operation, targetBuilder, complete);
       }
     });
   }

@@ -14,9 +14,11 @@ export function createRouterBack(
 ): RouterBack__ {
   return Object.setPrototypeOf(
     () =>
-      router._set('back', {
-        ...target,
-        statePart: undefined,
+      router._set('back', () => {
+        return {
+          ...target,
+          statePart: undefined,
+        };
       }),
     new RouterBackClass(router, target),
   );
@@ -44,9 +46,11 @@ export class RouterBackClass<TSwitchingState extends object> {
   }
 
   $go(): RouterSetResult {
-    return this.router._set('back', {
-      ...this.target,
-      statePart: undefined,
+    return this.router._set('back', () => {
+      return {
+        ...this.target,
+        statePart: undefined,
+      };
     });
   }
 }

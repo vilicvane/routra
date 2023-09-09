@@ -379,8 +379,9 @@ test('$snapshot', async () => {
 
   const router_1 = routra(schema);
 
-  await router_1.home.$reset().$completed;
-  await router_1.home.hello.$push().$completed;
+  router_1.home.$reset();
+  router_1.home.hello.$push();
+
   await router_1.about.$push().$completed;
 
   const snapshot = router_1.$snapshot!;

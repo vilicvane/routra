@@ -12,16 +12,18 @@ export interface RouteOperationTarget {
 export function createRouteOperation(
   router: Router__,
   operation: RouterOperation,
-  target: RouteOperationTarget,
+  targetBuilder: () => RouteOperationTarget,
 ): RouteOperation<object, object> {
   // E.g.: router.home.$push();
   return Object.setPrototypeOf(
     (statePart: object = {}) =>
-      router._set(operation, {
-        ...target,
-        statePart,
+      router._set(operation, () => {
+        return {
+          ...targetBuilder(),
+          statePart,
+        };
       }),
-    new RouteOperationClass(router, operation, target),
+    new RouteOperationClass(router, operation, targetBuilder),
   );
 }
 
@@ -42,7 +44,7 @@ export class RouteOperationClass<
   constructor(
     private router: Router__,
     private operation: RouterOperation,
-    private target: RouteOperationTarget,
+    private targetBuilder: () => RouteOperationTarget,
   ) {}
 
   $switch(
@@ -52,7 +54,7 @@ export class RouteOperationClass<
     return this.router._switch(
       this.operation,
       {
-        ...this.target,
+        ...this.targetBuilder(),
         statePart,
       },
       switchingState,

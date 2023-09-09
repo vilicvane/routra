@@ -35,7 +35,9 @@ test('state function', async () => {
 
   await router.home.$reset().$completed;
 
-  expect(() => router.home.hello.$push()).toThrowErrorMatchingInlineSnapshot(
+  await expect(
+    () => router.home.hello.$push().$completed,
+  ).rejects.toThrowErrorMatchingInlineSnapshot(
     `"Expected \`name\` to be string"`,
   );
 
