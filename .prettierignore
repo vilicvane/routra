@@ -4,4 +4,3 @@ boilerplate.schema.json
 pnpm-lock.yaml
 # TypeScript Build Artifacts
 bld/
-.bld/
