@@ -1,11 +1,11 @@
 import {computed, runInAction} from 'mobx';
 
-import type {RouteEntry, RouteNodeClass__} from '../route';
-import type {RouterOperation} from '../router';
+import type {RouteEntry, RouteNodeClass__} from '../route/index.js';
+import type {RouterOperation} from '../router/index.js';
 
-import type {ViewMatchEntry__} from './view';
-import {AbstractView} from './view';
-import {AbstractViewEntry} from './view-entry';
+import {AbstractViewEntry} from './view-entry.js';
+import type {ViewMatchEntry__} from './view.js';
+import {AbstractView} from './view.js';
 
 export class SingleView__ extends AbstractView<RouteNodeClass__> {
   private _entry: SingleViewEntry__ | undefined;

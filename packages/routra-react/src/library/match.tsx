@@ -3,14 +3,14 @@ import type {ComponentType} from 'react';
 import React from 'react';
 import type {RouteNodeClass__} from 'routra';
 
-export interface MatchComponentProps<TRoute extends RouteNodeClass__> {
+export type MatchComponentProps<TRoute extends RouteNodeClass__> = {
   route: TRoute;
-}
+};
 
-export interface MatchProps<TRoute extends RouteNodeClass__> {
+export type MatchProps<TRoute extends RouteNodeClass__> = {
   match: TRoute;
   component: ComponentType<MatchComponentProps<TRoute>>;
-}
+};
 
 export const Match = observer(
   <TRoute extends RouteNodeClass__>({

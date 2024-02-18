@@ -1,13 +1,17 @@
-import type {RouterOperation, RouterSetResult, Router__} from '../router';
+import type {
+  RouterOperation,
+  RouterSetResult,
+  Router__,
+} from '../router/index.js';
 
-import type {RouteTarget} from './route-entry';
-import type {RouteSwitching} from './route-switching';
+import type {RouteTarget} from './route-entry.js';
+import type {RouteSwitching} from './route-switching.js';
 
-export interface RouteOperationTarget {
+export type RouteOperationTarget = {
   path: string[];
   stateMap: Map<number, object>;
   previous: RouteTarget | undefined;
-}
+};
 
 export function createRouteOperation(
   router: Router__,

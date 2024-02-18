@@ -1,4 +1,4 @@
-import {createMergedObjectProxy} from './@utils';
+import {createMergedObjectProxy} from './@utils.js';
 
 export function mergeStateMapWithPart(
   path: string[],

@@ -3,18 +3,18 @@ import type {ComponentType} from 'react';
 import React from 'react';
 import type {IView, RouteNodeClass__, ViewEntry} from 'routra';
 
-import type {RouteViewComponentTransition} from './route-view';
-import {RouteView} from './route-view';
+import type {RouteViewComponentTransition} from './route-view.js';
+import {RouteView} from './route-view.js';
 
-export interface RouteComponentProps<TRoute extends RouteNodeClass__> {
+export type RouteComponentProps<TRoute extends RouteNodeClass__> = {
   view: ViewEntry<TRoute>;
   transition: RouteViewComponentTransition;
-}
+};
 
-export interface RouteProps<TRoute extends RouteNodeClass__> {
+export type RouteProps<TRoute extends RouteNodeClass__> = {
   view: IView<TRoute>;
   component: ComponentType<RouteComponentProps<TRoute>>;
-}
+};
 
 export const Route = observer(
   <TRoute extends RouteNodeClass__>({view, component}: RouteProps<TRoute>) => {

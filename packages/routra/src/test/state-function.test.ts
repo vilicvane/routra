@@ -1,6 +1,6 @@
 import assert from 'assert';
 
-import {routra} from '../library';
+import {routra} from '../library/index.js';
 
 test('state function', async () => {
   let count = 0;
@@ -38,7 +38,7 @@ test('state function', async () => {
   await expect(
     () => router.home.hello.$push().$completed,
   ).rejects.toThrowErrorMatchingInlineSnapshot(
-    `"Expected \`name\` to be string"`,
+    '"Expected `name` to be string"',
   );
 
   await router.home.hello('wsh').$reset().$completed;

@@ -2,17 +2,17 @@
   "name": "routra",
   "version": "0.2.0-alpha.10",
   "description": "Routra",
-  "repository": "https://github.com/vilic/routra.git",
+  "repository": "https://github.com/vilicvane/routra.git",
   "license": "MIT",
   "author": "vilicvane",
+  "type": "module",
   "exports": {
-    "types": "./bld/library/cjs/index.d.ts",
-    "import": "./bld/library/esm/index.js",
-    "require": "./bld/library/cjs/index.js"
+    "types": "./bld/library/index.d.ts",
+    "default": "./bld/library/index.js"
   },
   "dependencies": {
-    "multikey-map": "^0.2.1",
-    "tslib": "^2.5.0"
+    "multikey-map": "^0.4.0",
+    "tslib": "^2.6.2"
   },
   "peerDependencies": {
     "mobx": "6"

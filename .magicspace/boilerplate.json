@@ -1,0 +1,43 @@
+{
+  "$schema": "boilerplate.schema.json",
+  "boilerplate": "@mufan/code-boilerplates/typescript",
+  "options": {
+    "name": "routra-packages",
+    "description": "Routra",
+    "repository": "https://github.com/vilicvane/routra.git",
+    "license": "MIT",
+    "author": "vilicvane",
+    "defaultBranch": "master",
+    "packageManager": "pnpm",
+    "type": "module",
+    "packages": [
+      {
+        "name": "routra",
+        "projects": [
+          {
+            "name": "library"
+          },
+          {
+            "name": "test",
+            "noEmit": true,
+            "references": ["library"]
+          }
+        ]
+      },
+      {
+        "name": "routra-react",
+        "projects": [
+          {
+            "name": "library",
+            "references": [
+              {
+                "package": "routra",
+                "project": "library"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

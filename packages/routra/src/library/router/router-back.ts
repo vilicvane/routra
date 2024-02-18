@@ -1,12 +1,12 @@
-import type {RouteSwitching, RouteTarget} from '../route';
+import type {RouteSwitching, RouteTarget} from '../route/index.js';
 
-import type {RouterSetResult, Router__} from './router';
+import type {RouterSetResult, Router__} from './router.js';
 
-export interface RouteBackTarget {
+export type RouteBackTarget = {
   path: string[];
   stateMap: Map<number, object>;
   previous: RouteTarget | undefined;
-}
+};
 
 export function createRouterBack(
   router: Router__,
@@ -24,15 +24,17 @@ export function createRouterBack(
   );
 }
 
-export interface RouterBack<TSwitchingState extends object>
-  extends RouterBackClass<TSwitchingState> {
+export type RouterBack<TSwitchingState extends object> = {
   (): RouterSetResult;
-}
+} & RouterBackClass<TSwitchingState>;
 
 export type RouterBack__ = RouterBack<object>;
 
 export class RouterBackClass<TSwitchingState extends object> {
-  constructor(private router: Router__, private target: RouteBackTarget) {}
+  constructor(
+    private router: Router__,
+    private target: RouteBackTarget,
+  ) {}
 
   $switch(switchingState?: TSwitchingState): RouteSwitching<TSwitchingState> {
     return this.router._switch(

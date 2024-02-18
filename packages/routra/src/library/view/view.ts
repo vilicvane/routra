@@ -1,10 +1,10 @@
 import {computed, makeObservable} from 'mobx';
 
-import {createMergedObjectProxy} from '../@utils';
-import type {RouteNodeClass__} from '../route';
-import type {MatchEntry} from '../router';
+import {createMergedObjectProxy} from '../@utils.js';
+import type {RouteNodeClass__} from '../route/index.js';
+import type {MatchEntry} from '../router/index.js';
 
-import type {IViewEntry, ViewEntry} from './view-entry';
+import type {IViewEntry, ViewEntry} from './view-entry.js';
 
 abstract class View<TRoute extends RouteNodeClass__> {
   private _mergedEntryMap = new WeakMap<

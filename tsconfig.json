@@ -4,16 +4,10 @@
       "path": "packages/routra/src/library"
     },
     {
-      "path": "packages/routra/src/library/tsconfig.esm.json"
-    },
-    {
       "path": "packages/routra/src/test"
     },
     {
       "path": "packages/routra-react/src/library"
-    },
-    {
-      "path": "packages/routra-react/src/library/tsconfig.esm.json"
     }
   ],
   "files": []

@@ -1,6 +1,6 @@
 import {autorun, runInAction} from 'mobx';
 
-import {routra} from '../library';
+import {routra} from '../library/index.js';
 
 test('push', async () => {
   const router = routra({

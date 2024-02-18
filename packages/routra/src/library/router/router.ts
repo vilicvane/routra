@@ -1,11 +1,11 @@
 import type {IObservableValue} from 'mobx';
 import {makeObservable, observable, runInAction, toJS, when} from 'mobx';
-import MultikeyMap from 'multikey-map';
+import {MultikeyMap} from 'multikey-map';
 
-import type {ChildSchemaFallback_} from '../@schema';
-import {getChildSchema} from '../@schema';
-import {assertState, createMergedState} from '../@state';
-import {getCommonStartOfTwoArray, isArrayStartedWith} from '../@utils';
+import type {ChildSchemaFallback_} from '../@schema.js';
+import {getChildSchema} from '../@schema.js';
+import {assertState, createMergedState} from '../@state.js';
+import {getCommonStartOfTwoArray, isArrayStartedWith} from '../@utils.js';
 import type {
   RouteNode__,
   RouteOperation__,
@@ -13,23 +13,23 @@ import type {
   RouteSwitching__,
   RouteTarget,
   RouteType_,
-} from '../route';
+} from '../route/index.js';
 import {
   RouteEntry,
   createRoute,
   createRouteOperation,
   createRouteSwitching,
-} from '../route';
-import type {RouteKey, Schema, SchemaRecord} from '../schema';
+} from '../route/index.js';
+import type {RouteKey, Schema, SchemaRecord} from '../schema.js';
 
-import type {RouterBack} from './router-back';
-import {createRouterBack} from './router-back';
+import type {RouterBack} from './router-back.js';
+import {createRouterBack} from './router-back.js';
 
 export type Router__ = RouterClass<any>;
 
-export interface RouterOptions<TSwitchingState extends object> {
+export type RouterOptions<TSwitchingState extends object> = {
   defaultSwitchingState?: TSwitchingState;
-}
+};
 
 export class RouterClass<TSwitchingState extends object> {
   /** @internal */
@@ -617,28 +617,28 @@ export class RouterClass<TSwitchingState extends object> {
 
 export type RouterOperation = 'reset' | 'push' | 'replace' | 'back';
 
-export interface ActiveEntry {
+export type ActiveEntry = {
   operation: RouterOperation;
   entry: RouteEntry;
-}
+};
 
-export interface TransitionEntry {
+export type TransitionEntry = {
   operation: RouterOperation;
   entry: RouteEntry;
-}
+};
 
-export interface SwitchingEntry {
+export type SwitchingEntry = {
   operation: RouterOperation;
   entry: RouteEntry;
   switchingStateObservable: IObservableValue<object>;
   ref: object;
-}
+};
 
 export type MatchEntry = ActiveEntry | TransitionEntry | SwitchingEntry;
 
-export interface RouterSetResult {
+export type RouterSetResult = {
   $completed: Promise<void>;
-}
+};
 
 export type Router<
   TSchemaRecord extends SchemaRecord,
@@ -652,11 +652,8 @@ export type Router<
   >;
 };
 
-export type RouterSwitchingState_<TRouter> = TRouter extends RouterClass<
-  infer TSwitchingState
->
-  ? TSwitchingState
-  : never;
+export type RouterSwitchingState_<TRouter> =
+  TRouter extends RouterClass<infer TSwitchingState> ? TSwitchingState : never;
 
 export type RouterSwitchingState<TRouter extends Router__> =
   RouterSwitchingState_<TRouter>;
@@ -668,7 +665,7 @@ export type RouterSwitching_<TRouter> = RouteSwitching<
 export type RouterSwitching<TRouter extends Router__> =
   RouterSwitching_<TRouter>;
 
-export interface SnapshotEntry {
+export type SnapshotEntry = {
   path: string[];
   inputs: unknown[];
   /**
@@ -678,10 +675,10 @@ export interface SnapshotEntry {
    */
   states: number[];
   previous?: SnapshotEntry;
-}
+};
 
-export interface Snapshot {
+export type Snapshot = {
   operation: RouterOperation;
   entry: SnapshotEntry;
   states: object[];
-}
+};

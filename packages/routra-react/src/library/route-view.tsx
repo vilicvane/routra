@@ -7,17 +7,17 @@ import type {
   TransitionEventHandler,
 } from 'react';
 import React, {createContext, useMemo, useState} from 'react';
-import useEvent from 'react-use-event-hook';
+import {useEvent} from 'react-use-event-hook';
 import type {RouteNodeClass__, ViewEntry, ViewEntry__} from 'routra';
 
-import type {RouteComponentProps} from './route';
+import type {RouteComponentProps} from './route.js';
 
 export const RouteContext = createContext<RouteContextObject>(undefined!);
 
-export interface RouteViewProps<TRoute extends RouteNodeClass__> {
+export type RouteViewProps<TRoute extends RouteNodeClass__> = {
   entry: ViewEntry<TRoute>;
   component: ComponentType<RouteComponentProps<TRoute>>;
-}
+};
 
 export const RouteView = <TRoute extends RouteNodeClass__>({
   entry,
@@ -65,14 +65,14 @@ export const RouteView = <TRoute extends RouteNodeClass__>({
   );
 };
 
-export interface RouteContextObject {
+export type RouteContextObject = {
   view: ViewEntry__;
   transition: RouteViewComponentTransition;
-}
+};
 
-export interface RouteViewComponentTransition {
+export type RouteViewComponentTransition = {
   events: {
     onAnimationEnd: AnimationEventHandler;
     onTransitionEnd: TransitionEventHandler;
   };
-}
+};

@@ -1,8 +1,8 @@
 import {observable, runInAction} from 'mobx';
 
-import {mergeStateMapWithPart} from '../@state';
-import {createMergedObjectProxy} from '../@utils';
-import type {Router__} from '../router';
+import {mergeStateMapWithPart} from '../@state.js';
+import {createMergedObjectProxy} from '../@utils.js';
+import type {Router__} from '../router/index.js';
 
 export class RouteEntry {
   private enteringSet = observable.set<object>();
@@ -103,14 +103,14 @@ export class RouteEntry {
 }
 
 /** @internal */
-export interface RouteEntryRegisterTransitionOptions {
+export type RouteEntryRegisterTransitionOptions = {
   entering: boolean;
   leaving: boolean;
-}
+};
 
-export interface RouteTarget {
+export type RouteTarget = {
   path: string[];
   stateMap: Map<number, object>;
   previous: RouteTarget | undefined;
   statePart: object | undefined;
-}
+};

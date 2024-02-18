@@ -4,22 +4,22 @@ import type {
   ChildSchemaFallback_,
   SchemaStateInput_,
   SchemaState_,
-} from '../@schema';
-import type {OverrideObject_} from '../@utils';
-import {isArrayEqual, isArrayStartedWith} from '../@utils';
+} from '../@schema.js';
+import type {OverrideObject_} from '../@utils.js';
+import {isArrayEqual, isArrayStartedWith} from '../@utils.js';
 import type {
   ActiveEntry,
   Router__,
   SwitchingEntry,
   TransitionEntry,
-} from '../router';
-import type {CreateViewOptions} from '../routra';
-import {routra} from '../routra';
-import type {RouteKey, Schema} from '../schema';
-import type {IView} from '../view';
+} from '../router/index.js';
+import type {RouteKey, Schema} from '../schema.js';
+import type {IView} from '../view/index.js';
 
-import type {RouteEntry} from './route-entry';
-import type {RouteOperation} from './route-operation';
+import type {RouteEntry} from './route-entry.js';
+import type {RouteOperation} from './route-operation.js';
+import type {RouteViewOptions} from './route-view.js';
+import {$view} from './route-view.js';
 
 export type Route__ = Route_<unknown, object, object, string[]>;
 export type RouteClass__ = RouteClass<unknown, object, object, string[]>;
@@ -40,14 +40,17 @@ export function createRoute(
 ): Route__ | RouteNode__ {
   const Constructor = schema.$exact === false ? RouteNodeClass : RouteClass;
 
-  return Object.setPrototypeOf((state: object) => {
-    return new Constructor(
-      router,
-      schema,
-      path,
-      new Map([...stateMapUpdate, [path.length - 1, state]]),
-    );
-  }, new Constructor(router, schema, path, stateMapUpdate));
+  return Object.setPrototypeOf(
+    (state: object) => {
+      return new Constructor(
+        router,
+        schema,
+        path,
+        new Map([...stateMapUpdate, [path.length - 1, state]]),
+      );
+    },
+    new Constructor(router, schema, path, stateMapUpdate),
+  );
 }
 
 export class RouteNodeClass<
@@ -169,8 +172,8 @@ export class RouteNodeClass<
     return switching;
   }
 
-  $view(options?: CreateViewOptions): IView<this> {
-    return routra.$view([this as any], options);
+  $view(options?: RouteViewOptions): IView<this> {
+    return $view([this as any], options);
   }
 
   private _isMatched({path: entryPath}: RouteEntry): boolean {
@@ -182,17 +185,17 @@ export class RouteNodeClass<
   }
 }
 
-interface RouteNodeStateSetterBivariance<
+type RouteNodeStateSetterBivariance<
   TSchema,
   TSwitchingState extends object,
   TMergedState extends object,
   TPath extends string[],
-> {
+> = {
   bivariance(
     state: SchemaStateInput_<TSchema>,
   ): RouteNodeClass<TSchema, TSwitchingState, TMergedState, TPath> &
     RouteRoutes_<TSchema, TSwitchingState, TMergedState, TPath>;
-}
+};
 
 type RouteNodeStateSetter<
   TSchema,
@@ -220,15 +223,6 @@ export class RouteClass<
   TMergedState extends object,
   TPath extends string[],
 > extends RouteNodeClass<TSchema, TSwitchingState, TMergedState, TPath> {
-  constructor(
-    $router: Router__,
-    schema: Schema,
-    $path: TPath,
-    stateMapUpdate: Map<number, object>,
-  ) {
-    super($router, schema, $path, stateMapUpdate);
-  }
-
   get $reset(): RouteOperation<TMergedState, TSwitchingState> {
     return this.$router._reset(this.$path, this._stateMapUpdate);
   }
@@ -244,17 +238,17 @@ export class RouteClass<
 
 declare const __static_type: unique symbol;
 
-interface RouteStateSetterBivariance<
+type RouteStateSetterBivariance<
   TSchema,
   TSwitchingState extends object,
   TMergedState extends object,
   TPath extends string[],
-> {
+> = {
   bivariance(
     state: SchemaStateInput_<TSchema>,
   ): RouteClass<TSchema, TSwitchingState, TMergedState, TPath> &
     RouteRoutes_<TSchema, TSwitchingState, TMergedState, TPath>;
-}
+};
 
 type RouteStateSetter<
   TSchema,
@@ -295,15 +289,16 @@ export type RouteType_<
   TSwitchingState extends object,
   TUpperMergedState extends object,
   TPath extends string[],
-> = OverrideObject_<
-  TUpperMergedState,
-  SchemaState_<TSchema>
-> extends infer TMergedState extends object
-  ? (TSchema extends {$exact: false}
-      ? RouteNode_<TSchema, TSwitchingState, TMergedState, TPath>
-      : Route_<TSchema, TSwitchingState, TMergedState, TPath>) &
-      RouteRoutes_<TSchema, TSwitchingState, TMergedState, TPath>
-  : never;
+> =
+  OverrideObject_<
+    TUpperMergedState,
+    SchemaState_<TSchema>
+  > extends infer TMergedState extends object
+    ? (TSchema extends {$exact: false}
+        ? RouteNode_<TSchema, TSwitchingState, TMergedState, TPath>
+        : Route_<TSchema, TSwitchingState, TMergedState, TPath>) &
+        RouteRoutes_<TSchema, TSwitchingState, TMergedState, TPath>
+    : never;
 
 export type Route<
   TSchema extends Schema,
@@ -312,20 +307,12 @@ export type Route<
   TPath extends string[],
 > = RouteType_<TSchema, TSwitchingState, TUpperMergedState, TPath>;
 
-export type RouteSwitchingState_<TRoute> = TRoute extends RouteNodeClass<
-  any,
-  infer TSwitchingState,
-  any,
-  any
->
-  ? TSwitchingState
-  : {};
+export type RouteSwitchingState_<TRoute> =
+  TRoute extends RouteNodeClass<any, infer TSwitchingState, any, any>
+    ? TSwitchingState
+    : {};
 
-export type RouteMergedState_<TRoute> = TRoute extends RouteNodeClass<
-  any,
-  any,
-  infer TMergedState,
-  any
->
-  ? TMergedState
-  : {};
+export type RouteMergedState_<TRoute> =
+  TRoute extends RouteNodeClass<any, any, infer TMergedState, any>
+    ? TMergedState
+    : {};

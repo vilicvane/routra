@@ -5,8 +5,8 @@ import type {
   RouteNodeClass__,
   RouterOperation,
   ViewSwitchingRelationship,
-} from '../library';
-import {RouteClass, RouteNodeClass, routra} from '../library';
+} from '../library/index.js';
+import {RouteClass, RouteNodeClass, routra} from '../library/index.js';
 
 test('simple case 1', async () => {
   const router = routra({
@@ -96,7 +96,7 @@ test('simple case 1', async () => {
   expect(router.home.$view().$entries[0].user).toBe('456');
   expect(observedUser).toBe('456');
 
-  type _ =
+  type _Assert =
     | AssertTrue<
         IsEqual<
           PickDynamic<RouteViewEntry<typeof router.home>>,
@@ -302,7 +302,7 @@ test('switching', async () => {
     },
   ]);
 
-  type _ = AssertTrue<
+  type _Assert = AssertTrue<
     IsEqual<
       Pick<RouteViewEntry<typeof router.home>, '$switching'>,
       {
@@ -333,7 +333,7 @@ test('$exact false support', () => {
   expect(router_1.home.world instanceof RouteClass).toBe(true);
   expect(router_1.about instanceof RouteClass).toBe(true);
 
-  type _ =
+  type _Assert =
     | AssertTrue<typeof router_1.home extends {$reset: unknown} ? false : true>
     | AssertTrue<
         typeof router_1.home.world extends {$reset: unknown} ? true : false
