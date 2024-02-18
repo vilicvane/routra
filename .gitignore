@@ -4,5 +4,4 @@
 node_modules/
 # TypeScript Build Artifacts
 bld/
-.bld/
 *.tsbuildinfo

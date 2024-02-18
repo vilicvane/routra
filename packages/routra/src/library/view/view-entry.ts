@@ -1,4 +1,4 @@
-import {autorun, computed, makeObservable, observable, runInAction} from 'mobx';
+import {autorun, computed, observable, runInAction} from 'mobx';
 
 import {createMergedObjectProxy} from '../@utils.js';
 import type {
@@ -14,16 +14,16 @@ abstract class ViewEntryClass<TRoute extends RouteNodeClass__> {
   readonly $key = getNextViewEntryKey();
 
   @observable
-  protected _enteringEnabled = false;
+  protected accessor _enteringEnabled = false;
 
   @observable
-  protected _leavingEnabled = false;
+  protected accessor _leavingEnabled = false;
 
   @observable
-  protected _entered = false;
+  protected accessor _entered = false;
 
   @observable
-  protected _left = false;
+  protected accessor _left = false;
 
   private _autorunDisposer: () => void;
 
@@ -32,8 +32,6 @@ abstract class ViewEntryClass<TRoute extends RouteNodeClass__> {
   private leavingTransitionActivity: ViewTransitionActivity | undefined;
 
   constructor() {
-    makeObservable(this);
-
     this._autorunDisposer = autorun(() => this._autorunUpdateTransitionBlock());
   }
 

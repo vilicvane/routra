@@ -1,4 +1,4 @@
-import {computed, makeObservable} from 'mobx';
+import {computed} from 'mobx';
 
 import type {
   ChildSchemaFallback_,
@@ -73,8 +73,6 @@ export class RouteNodeClass<
     readonly $path: TPath,
     protected _stateMapUpdate: Map<number, object>,
   ) {
-    makeObservable(this);
-
     this.$key = $path[$path.length - 1];
 
     for (let [key, childSchema] of Object.entries(schema)) {

@@ -1,4 +1,4 @@
-import {computed, makeObservable} from 'mobx';
+import {computed} from 'mobx';
 
 import {createMergedObjectProxy} from '../@utils.js';
 import type {RouteNodeClass__} from '../route/index.js';
@@ -12,9 +12,7 @@ abstract class View<TRoute extends RouteNodeClass__> {
     ViewEntry<TRoute>
   >();
 
-  constructor(readonly $routes: TRoute[]) {
-    makeObservable(this);
-  }
+  constructor(readonly $routes: TRoute[]) {}
 
   /** @internal */
   abstract get _entries(): IViewEntry<TRoute>[];

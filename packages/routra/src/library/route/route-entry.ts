@@ -11,7 +11,6 @@ export class RouteEntry {
 
   private states: object[];
 
-  @observable
   private pendingStatePart: object | undefined;
 
   readonly mergedState: object;

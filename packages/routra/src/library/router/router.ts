@@ -1,5 +1,5 @@
 import type {IObservableValue} from 'mobx';
-import {makeObservable, observable, runInAction, toJS, when} from 'mobx';
+import {observable, runInAction, toJS, when} from 'mobx';
 import {MultikeyMap} from 'multikey-map';
 
 import type {ChildSchemaFallback_} from '../@schema.js';
@@ -34,15 +34,15 @@ export type RouterOptions<TSwitchingState extends object> = {
 export class RouterClass<TSwitchingState extends object> {
   /** @internal */
   @observable.ref
-  _active: ActiveEntry | undefined;
+  accessor _active: ActiveEntry | undefined;
 
   /** @internal */
   @observable.ref
-  _transition: TransitionEntry | undefined;
+  accessor _transition: TransitionEntry | undefined;
 
   /** @internal */
   @observable.ref
-  _switching: SwitchingEntry | undefined;
+  accessor _switching: SwitchingEntry | undefined;
 
   /** @internal */
   private readonly _queue: [
@@ -63,8 +63,6 @@ export class RouterClass<TSwitchingState extends object> {
     /** @internal */
     private _options: RouterOptions<TSwitchingState>,
   ) {
-    makeObservable(this);
-
     for (let [key, childSchema] of Object.entries(_schemas)) {
       if (key.startsWith('$')) {
         continue;
