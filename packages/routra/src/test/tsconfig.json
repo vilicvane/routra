@@ -1,13 +1,14 @@
 {
-  "extends": "@mufan/code/tsconfig.json",
+  "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    "noEmit": true,
-    "outDir": "../../bld/test"
+    "types": ["jest"],
+    "rootDir": ".",
+    "outDir": "../../.bld/test",
   },
   "references": [
     {
-      "path": "../library"
-    }
-  ]
+      "path": "../library",
+    },
+  ],
 }

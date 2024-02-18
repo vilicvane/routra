@@ -1,0 +1,25 @@
+{
+  "root": true,
+  "ignorePatterns": [
+    "node_modules/",
+    "/packages/routra/src/",
+    "/packages/routra/bld/",
+    "/packages/routra-react/src/",
+    "/packages/routra-react/bld/"
+  ],
+  "extends": ["plugin:@mufan/javascript"],
+  "overrides": [
+    {
+      "files": "**/*.{js,mjs}",
+      "parserOptions": {
+        "sourceType": "module"
+      }
+    },
+    {
+      "files": "**/*.cjs",
+      "parserOptions": {
+        "sourceType": "script"
+      }
+    }
+  ]
+}

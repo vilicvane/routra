@@ -1,6 +1,6 @@
 # routra-packages
 
-Just another awesome magic.
+Routra
 
 ## License
 

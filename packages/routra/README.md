@@ -1,6 +1,6 @@
 # routra
 
-Just another awesome magic.
+Routra
 
 ## License
 

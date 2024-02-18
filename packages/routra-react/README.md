@@ -1,6 +1,6 @@
 # routra-react
 
-Just another awesome magic.
+Routra
 
 ## License
 
