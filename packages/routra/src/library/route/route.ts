@@ -1,5 +1,3 @@
-import {computed} from 'mobx';
-
 import type {
   ChildSchemaFallback_,
   SchemaStateInput_,
@@ -128,8 +126,6 @@ export class RouteNodeClass<
   }
 
   /** @internal */
-
-  @computed
   get _active(): ActiveEntry | undefined {
     const {$router} = this;
 
@@ -143,7 +139,6 @@ export class RouteNodeClass<
   }
 
   /** @internal */
-  @computed
   get _transition(): TransitionEntry | undefined {
     const {$router} = this;
 
@@ -157,7 +152,6 @@ export class RouteNodeClass<
   }
 
   /** @internal */
-  @computed
   get _switching(): SwitchingEntry | undefined {
     const {$router} = this;
 
@@ -174,12 +168,12 @@ export class RouteNodeClass<
     return $view([this as any], options);
   }
 
-  private _isMatched({path: entryPath}: RouteEntry): boolean {
+  private _isMatched({path}: RouteEntry): boolean {
     const {$path} = this;
 
     return this._exact
-      ? isArrayEqual(entryPath, $path)
-      : isArrayStartedWith(entryPath, $path);
+      ? isArrayEqual(path, $path)
+      : isArrayStartedWith(path, $path);
   }
 }
 
