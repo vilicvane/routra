@@ -26,6 +26,8 @@ test('simple case 1', async () => {
 
   await router.home.$reset().$completed;
 
+  expect(router.$routes).toEqual([router.home]);
+
   expect(router.home.$view().$entries).toMatchObject([
     {
       $key: 1,
@@ -45,6 +47,8 @@ test('simple case 1', async () => {
   expect(router.home.hello.$view().$entries).toEqual([]);
 
   await router.home.hello.$push({user: '123'}).$completed;
+
+  expect(router.$routes).toEqual([router.home, router.home.hello]);
 
   expect(router.home.$view().$entries).toMatchObject([
     {

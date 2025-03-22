@@ -7,7 +7,9 @@ import {getChildSchema} from '../@schema.js';
 import {assertState, createMergedState} from '../@state.js';
 import {getCommonStartOfTwoArray, isArrayStartedWith} from '../@utils.js';
 import type {
+  RouteClass__,
   RouteNode__,
+  RouteNodeClass__,
   RouteOperation__,
   RouteSwitching,
   RouteSwitching__,
@@ -83,6 +85,28 @@ export class RouterClass<TSwitchingState extends object> {
 
   get $path(): string[] | undefined {
     return this._active?.entry.path;
+  }
+
+  get $routes():
+    | [...(RouteNodeClass__ | RouteClass__)[], RouteClass__]
+    | undefined {
+    const path = this.$path;
+
+    if (!path) {
+      return undefined;
+    }
+
+    const routes: any[] = [];
+
+    let current = this as any;
+
+    for (const key of path) {
+      current = current[key];
+
+      routes.push(current);
+    }
+
+    return routes as [...any[], any];
   }
 
   get $state(): object | undefined {
