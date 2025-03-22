@@ -1,14 +1,14 @@
 {
   "references": [
     {
-      "path": "packages/routra/src/library",
+      "path": "packages/routra/src/library"
     },
     {
-      "path": "packages/routra/src/test",
+      "path": "packages/routra/src/test"
     },
     {
-      "path": "packages/routra-react/src/library",
-    },
+      "path": "packages/routra-react/src/library"
+    }
   ],
-  "files": [],
+  "files": []
 }

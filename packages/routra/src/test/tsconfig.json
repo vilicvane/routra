@@ -4,11 +4,11 @@
     "composite": true,
     "types": ["jest"],
     "rootDir": ".",
-    "outDir": "../../bld/test",
+    "outDir": "../../bld/test"
   },
   "references": [
     {
-      "path": "../library",
-    },
-  ],
+      "path": "../library"
+    }
+  ]
 }
