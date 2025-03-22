@@ -8,8 +8,8 @@ import {assertState, createMergedState} from '../@state.js';
 import {getCommonStartOfTwoArray, isArrayStartedWith} from '../@utils.js';
 import type {
   RouteClass__,
-  RouteNode__,
   RouteNodeClass__,
+  RouteNode__,
   RouteOperation__,
   RouteSwitching,
   RouteSwitching__,

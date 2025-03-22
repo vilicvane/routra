@@ -12,7 +12,7 @@
   "dependencies": {
     "react-use-event-hook": "^0.9.3",
     "routra": "workspace:*",
-    "tslib": "^2.6.2"
+    "tslib": "^2.8.1"
   },
   "peerDependencies": {
     "mobx": "6",
