@@ -7,6 +7,10 @@
     "repository": "https://github.com/vilicvane/routra.git",
     "license": "MIT",
     "author": "vilicvane",
+    "badges": {
+      "npm": true,
+      "license": true
+    },
     "defaultBranch": "master",
     "packageManager": "pnpm",
     "type": "module",
