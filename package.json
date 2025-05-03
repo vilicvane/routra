@@ -25,6 +25,6 @@
     "prettier": "^3.5.3",
     "rimraf": "^5.0.10",
     "run-in-every": "^0.2.0",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.3"
   }
 }
