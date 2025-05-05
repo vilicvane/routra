@@ -1,8 +1,5 @@
 {
   "$schema": "node_modules/lerna/schemas/lerna-schema.json",
   "registry": "https://registry.npmjs.org",
-  "useWorkspaces": true,
-  "version": "independent",
-  "independent": true,
-  "useNx": true
+  "version": "independent"
 }
