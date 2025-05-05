@@ -13,7 +13,7 @@
     "lint-prettier": "prettier --check .",
     "bare-test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "test": "npm run lint-prettier && npm run build && npm run lint && npm run bare-test",
-    "lerna:publish": "yarn test && lerna publish",
+    "lerna:publish": "npm run test && lerna publish",
     "routra": "pnpm --filter routra",
     "routra-react": "pnpm --filter routra-react"
   },
