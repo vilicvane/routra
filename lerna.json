@@ -1,5 +1,6 @@
 {
   "$schema": "node_modules/lerna/schemas/lerna-schema.json",
   "registry": "https://registry.npmjs.org",
-  "version": "independent"
+  "version": "independent",
+  "npmClient": "pnpm"
 }
