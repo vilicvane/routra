@@ -8,6 +8,9 @@
     },
     {
       "path": "packages/routra-react/src/library"
+    },
+    {
+      "path": "packages/routra-browser/src/library"
     }
   ],
   "files": []

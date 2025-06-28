@@ -20,7 +20,8 @@
     ".",
     "packages/routra/src/library",
     "packages/routra/src/test",
-    "packages/routra-react/src/library"
+    "packages/routra-react/src/library",
+    "packages/routra-browser/src/library"
   ],
   "eslint.validate": [
     "javascript",
