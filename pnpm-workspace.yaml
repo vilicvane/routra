@@ -1,3 +1,4 @@
 packages:
   - packages/routra
   - packages/routra-react
+  - packages/routra-browser

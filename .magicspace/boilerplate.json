@@ -40,6 +40,20 @@
             ]
           }
         ]
+      },
+      {
+        "name": "routra-browser",
+        "projects": [
+          {
+            "name": "library",
+            "references": [
+              {
+                "package": "routra",
+                "project": "library"
+              }
+            ]
+          }
+        ]
       }
     ]
   }

@@ -15,6 +15,7 @@
     "test": "npm run lint-prettier && npm run build && npm run lint && npm run bare-test",
     "lerna:publish": "npm run test && lerna publish",
     "routra": "pnpm --filter routra",
+    "routra-browser": "pnpm --filter routra-browser",
     "routra-react": "pnpm --filter routra-react"
   },
   "devDependencies": {
