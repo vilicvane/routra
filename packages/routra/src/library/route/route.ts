@@ -14,7 +14,6 @@ import type {
 import type {RouteKey, Schema} from '../schema.js';
 import type {IView} from '../view/index.js';
 
-import type {RouteEntry} from './route-entry.js';
 import type {RouteOperation} from './route-operation.js';
 import type {RouteViewOptions} from './route-view.js';
 import {$view} from './route-view.js';
@@ -131,7 +130,7 @@ export class RouteNodeClass<
 
     const active = $router._requireActive();
 
-    if (!this._isMatched(active.entry)) {
+    if (!this._isMatched(active.entry.path)) {
       return undefined;
     }
 
@@ -144,7 +143,7 @@ export class RouteNodeClass<
 
     const transition = $router._transition;
 
-    if (!transition || !this._isMatched(transition.entry)) {
+    if (!transition || !this._isMatched(transition.entry.path)) {
       return undefined;
     }
 
@@ -157,7 +156,7 @@ export class RouteNodeClass<
 
     const switching = $router._switching;
 
-    if (!switching || !this._isMatched(switching.entry)) {
+    if (!switching || !this._isMatched(switching.entry.path)) {
       return undefined;
     }
 
@@ -168,7 +167,8 @@ export class RouteNodeClass<
     return $view([this as any], options);
   }
 
-  private _isMatched({path}: RouteEntry): boolean {
+  /** @internal */
+  _isMatched(path: string[]): boolean {
     const {$path} = this;
 
     return this._exact

@@ -1,2 +1,2 @@
-export * from './router-back.js';
+export * from './router-back-forward.js';
 export * from './router.js';

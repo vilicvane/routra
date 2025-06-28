@@ -73,7 +73,7 @@ export class ParallelViewEntry__ extends AbstractViewEntry<RouteNodeClass__> {
     super._dispose();
 
     runInAction(() => {
-      this._match.entry.updateTransitionBlock(this, {
+      this._match.entry._updateTransitionBlock(this, {
         entering: false,
         leaving: false,
       });
@@ -88,7 +88,7 @@ export class ParallelViewEntry__ extends AbstractViewEntry<RouteNodeClass__> {
     const left = this._left;
 
     runInAction(() => {
-      this._match.entry.updateTransitionBlock(this, {
+      this._match.entry._updateTransitionBlock(this, {
         entering: enteringEnabled && !entered,
         leaving: leavingEnabled && !left,
       });

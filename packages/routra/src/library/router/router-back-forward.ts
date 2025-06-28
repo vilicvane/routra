@@ -2,43 +2,46 @@ import type {RouteSwitching, RouteTarget} from '../route/index.js';
 
 import type {RouterSetResult, Router__} from './router.js';
 
-export type RouteBackTarget = {
+export type RouteBackForwardTarget = {
   path: string[];
   stateMap: Map<number, object>;
   previous: RouteTarget | undefined;
+  next: RouteTarget | undefined;
 };
 
-export function createRouterBack(
+export function createRouterBackForward(
   router: Router__,
-  target: RouteBackTarget,
+  operation: 'back' | 'forward',
+  target: RouteBackForwardTarget,
 ): RouterBack__ {
   return Object.setPrototypeOf(
     () =>
-      router._set('back', () => {
+      router._set(operation, () => {
         return {
           ...target,
           statePart: undefined,
         };
       }),
-    new RouterBackClass(router, target),
+    new RouterBackForwardClass(router, operation, target),
   );
 }
 
-export type RouterBack<TSwitchingState extends object> = {
+export type RouterBackForward<TSwitchingState extends object> = {
   (): RouterSetResult;
-} & RouterBackClass<TSwitchingState>;
+} & RouterBackForwardClass<TSwitchingState>;
 
-export type RouterBack__ = RouterBack<object>;
+export type RouterBack__ = RouterBackForward<object>;
 
-export class RouterBackClass<TSwitchingState extends object> {
+export class RouterBackForwardClass<TSwitchingState extends object> {
   constructor(
     private router: Router__,
-    private target: RouteBackTarget,
+    private operation: 'back' | 'forward',
+    private target: RouteBackForwardTarget,
   ) {}
 
   $switch(switchingState?: TSwitchingState): RouteSwitching<TSwitchingState> {
     return this.router._switch(
-      'back',
+      this.operation,
       {
         ...this.target,
         statePart: undefined,
@@ -48,7 +51,7 @@ export class RouterBackClass<TSwitchingState extends object> {
   }
 
   $go(): RouterSetResult {
-    return this.router._set('back', () => {
+    return this.router._set(this.operation, () => {
       return {
         ...this.target,
         statePart: undefined,

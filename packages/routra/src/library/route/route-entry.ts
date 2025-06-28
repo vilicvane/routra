@@ -11,8 +11,6 @@ export class RouteEntry {
 
   private states: object[];
 
-  private pendingStatePart: object | undefined;
-
   readonly mergedState: object;
 
   constructor(
@@ -20,27 +18,17 @@ export class RouteEntry {
     readonly path: string[],
     readonly stateMap: Map<number, object>,
     readonly previous: RouteTarget | undefined,
-    pendingStatePart: object | undefined,
+    readonly next: RouteTarget | undefined,
+    private pendingStatePart: object | undefined,
   ) {
     this.states = Array.from(path.keys(), index => stateMap.get(index))
       .filter((state): state is object => state !== undefined)
       .reverse();
 
-    this.pendingStatePart = pendingStatePart;
-
     this.mergedState = createMergedObjectProxy(() => {
       const {states, pendingStatePart} = this;
       return pendingStatePart ? [pendingStatePart, ...states] : states;
     });
-  }
-
-  get target(): RouteTarget {
-    return {
-      path: this.path,
-      stateMap: this.stateMap,
-      previous: this.previous,
-      statePart: this.pendingStatePart ?? {},
-    };
   }
 
   get blockedByEntering(): boolean {
@@ -67,7 +55,41 @@ export class RouteEntry {
     return this.active && this.router._transition !== undefined;
   }
 
-  updateTransitionBlock(
+  getTarget(position: 'head' | 'left' | 'right'): RouteTarget {
+    return {
+      path: this.path,
+      stateMap: this.stateMap,
+      previous:
+        position !== 'right' && this.previous
+          ? buildTarget('previous', this.previous)
+          : undefined,
+      next:
+        position !== 'left' && this.next
+          ? buildTarget('next', this.next)
+          : undefined,
+      statePart: this.pendingStatePart ?? {},
+    };
+
+    function buildTarget(
+      direction: 'previous' | 'next',
+      target: RouteTarget,
+    ): RouteTarget {
+      return {
+        ...target,
+        previous:
+          direction === 'previous' && target.previous
+            ? buildTarget('previous', target.previous)
+            : undefined,
+        next:
+          direction === 'next' && target.next
+            ? buildTarget('next', target.next)
+            : undefined,
+      };
+    }
+  }
+
+  /** @internal */
+  _updateTransitionBlock(
     ref: object,
     {entering, leaving}: RouteEntryRegisterTransitionOptions,
   ): void {
@@ -86,7 +108,8 @@ export class RouteEntry {
     });
   }
 
-  mergePendingStatePart(): void {
+  /** @internal */
+  _mergePendingStatePart(): void {
     const pendingStatePart = this.pendingStatePart;
 
     if (!pendingStatePart) {
@@ -111,5 +134,6 @@ export type RouteTarget = {
   path: string[];
   stateMap: Map<number, object>;
   previous: RouteTarget | undefined;
+  next: RouteTarget | undefined;
   statePart: object | undefined;
 };

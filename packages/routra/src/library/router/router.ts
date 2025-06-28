@@ -5,7 +5,7 @@ import {MultikeyMap} from 'multikey-map';
 import type {ChildSchemaFallback_} from '../@schema.js';
 import {getChildSchema} from '../@schema.js';
 import {assertState, createMergedState} from '../@state.js';
-import {getCommonStartOfTwoArray, isArrayStartedWith} from '../@utils.js';
+import {getCommonStartOfTwoArray} from '../@utils.js';
 import type {
   RouteClass__,
   RouteNodeClass__,
@@ -24,8 +24,8 @@ import {
 } from '../route/index.js';
 import type {RouteKey, Schema, SchemaRecord} from '../schema.js';
 
-import type {RouterBack} from './router-back.js';
-import {createRouterBack} from './router-back.js';
+import type {RouterBackForward} from './router-back-forward.js';
+import {createRouterBackForward} from './router-back-forward.js';
 
 export type Router__ = RouterClass<any>;
 
@@ -123,24 +123,20 @@ export class RouterClass<TSwitchingState extends object> {
     const stateInputMap = this._stateInputMap;
     const schemas = this._schemas;
 
-    const {
-      operation,
-      entry: {target},
-    } = activeEntry;
+    const {operation, entry} = activeEntry;
 
     const stateObjects: object[] = [];
 
     return {
       operation,
-      entry: buildEntry(target),
+      entry: buildEntry('head', entry.getTarget('head')),
       states: stateObjects.map(stateObject => toJS(stateObject)),
     };
 
-    function buildEntry({
-      path,
-      stateMap,
-      previous,
-    }: RouteTarget): SnapshotEntry {
+    function buildEntry(
+      position: 'head' | 'left' | 'right',
+      {path, stateMap, previous, next}: RouteTarget,
+    ): SnapshotEntry {
       const inputs: unknown[] = [];
       const states: number[] = [];
 
@@ -177,21 +173,30 @@ export class RouterClass<TSwitchingState extends object> {
         path,
         inputs,
         states,
-        previous: previous && buildEntry(previous),
+        previous:
+          position !== 'right' && previous
+            ? buildEntry('left', previous)
+            : undefined,
+        next:
+          position !== 'left' && next ? buildEntry('right', next) : undefined,
       };
     }
   }
 
-  get $back(): RouterBack<TSwitchingState> {
+  get $back(): RouterBackForward<TSwitchingState> {
     const {
-      entry: {previous: entry},
+      entry,
+      entry: {previous},
     } = this._requireActive();
 
-    if (!entry) {
+    if (!previous) {
       throw new Error('No previous entry');
     }
 
-    return createRouterBack(this, entry);
+    return createRouterBackForward(this, 'back', {
+      ...previous,
+      next: entry.getTarget('right'),
+    });
   }
 
   get $ableToBack(): boolean {
@@ -200,24 +205,88 @@ export class RouterClass<TSwitchingState extends object> {
 
   $backTo(
     route: RouteNode__ | RouteNode__[],
-  ): RouterBack<TSwitchingState> | undefined {
+  ): RouterBackForward<TSwitchingState> | undefined {
     const routes = Array.isArray(route) ? route : [route];
 
     let {
-      entry: {previous: entry},
+      entry,
+      entry: {previous},
     } = this._requireActive();
 
-    outer: while (entry) {
+    let cursor = entry.getTarget('right');
+
+    outer: while (previous) {
+      previous = {
+        ...previous,
+        next: cursor,
+      };
+
+      cursor = previous;
+
       for (const route of routes) {
-        if (isArrayStartedWith(entry.path, route.$path)) {
+        if (route._isMatched(previous.path)) {
           break outer;
         }
       }
 
-      entry = entry.previous;
+      previous = previous.previous;
     }
 
-    return entry ? createRouterBack(this, entry) : undefined;
+    return previous
+      ? createRouterBackForward(this, 'back', previous)
+      : undefined;
+  }
+
+  get $forward(): RouterBackForward<TSwitchingState> {
+    const {
+      entry,
+      entry: {next},
+    } = this._requireActive();
+
+    if (!next) {
+      throw new Error('No next entry');
+    }
+
+    return createRouterBackForward(this, 'forward', {
+      ...next,
+      previous: entry.getTarget('left'),
+    });
+  }
+
+  get $ableToForward(): boolean {
+    return this._active?.entry.next !== undefined;
+  }
+
+  $forwardTo(
+    route: RouteNode__ | RouteNode__[],
+  ): RouterBackForward<TSwitchingState> | undefined {
+    const routes = Array.isArray(route) ? route : [route];
+
+    let {
+      entry,
+      entry: {next},
+    } = this._requireActive();
+
+    let cursor = entry.getTarget('left');
+
+    outer: while (next) {
+      next = {
+        ...next,
+        previous: cursor,
+      };
+
+      cursor = next;
+
+      for (const route of routes) {
+        if (route._isMatched(next.path)) {
+          break outer;
+        }
+      }
+
+      next = next.next;
+    }
+
+    return next ? createRouterBackForward(this, 'forward', next) : undefined;
   }
 
   $restore({operation, entry, states}: Snapshot): void {
@@ -231,7 +300,7 @@ export class RouterClass<TSwitchingState extends object> {
 
     const schemas = this._schemas;
 
-    const target = restoreTarget(entry);
+    const target = restoreTarget('head', entry);
 
     runInAction(() => {
       this._active = {
@@ -241,18 +310,23 @@ export class RouterClass<TSwitchingState extends object> {
           target.path,
           target.stateMap,
           target.previous,
+          target.next,
           undefined,
         ),
       };
     });
 
-    function restoreTarget(entry: SnapshotEntry): RouteTarget {
+    function restoreTarget(
+      position: 'head' | 'left' | 'right',
+      entry: SnapshotEntry,
+    ): RouteTarget {
       const {
         path,
         // Adding defaults for compatibility
         inputs = [],
         states: stateIndexes,
         previous,
+        next,
       } = entry;
 
       const stateMap = new Map<number, object>();
@@ -292,7 +366,14 @@ export class RouterClass<TSwitchingState extends object> {
       return {
         path,
         stateMap,
-        previous: previous && restoreTarget(previous),
+        previous:
+          position !== 'right' && previous
+            ? restoreTarget('left', previous)
+            : undefined,
+        next:
+          position !== 'left' && next
+            ? restoreTarget('right', next)
+            : undefined,
         statePart: undefined,
       };
     }
@@ -314,6 +395,7 @@ export class RouterClass<TSwitchingState extends object> {
         path,
         stateMap,
         previous: undefined,
+        next: undefined,
       };
     });
   }
@@ -328,7 +410,8 @@ export class RouterClass<TSwitchingState extends object> {
       return {
         path,
         stateMap,
-        previous: entry.target,
+        previous: entry.getTarget('left'),
+        next: undefined,
       };
     });
   }
@@ -347,6 +430,7 @@ export class RouterClass<TSwitchingState extends object> {
         path,
         stateMap,
         previous: entry.previous,
+        next: entry.next,
       };
     });
   }
@@ -354,7 +438,7 @@ export class RouterClass<TSwitchingState extends object> {
   /** @internal */
   _switch(
     operation: RouterOperation,
-    {path, stateMap, previous, statePart}: RouteTarget,
+    {path, stateMap, previous, next, statePart}: RouteTarget,
     switchingState: object | undefined,
   ): RouteSwitching__ {
     const ref = {};
@@ -371,7 +455,14 @@ export class RouterClass<TSwitchingState extends object> {
 
     const switchingStateObservable = observable.box(switchingState);
 
-    const entry = new RouteEntry(this, path, stateMap, previous, statePart);
+    const entry = new RouteEntry(
+      this,
+      path,
+      stateMap,
+      previous,
+      next,
+      statePart,
+    );
 
     runInAction(() => {
       this._switching = {
@@ -390,7 +481,7 @@ export class RouterClass<TSwitchingState extends object> {
     const {operation, entry} = this._requireSwitching(ref);
 
     runInAction(() => {
-      entry.mergePendingStatePart();
+      entry._mergePendingStatePart();
 
       this._active = {
         operation,
@@ -478,6 +569,7 @@ export class RouterClass<TSwitchingState extends object> {
       target.path,
       target.stateMap,
       target.previous,
+      target.next,
       target.statePart,
     );
 
@@ -507,7 +599,7 @@ export class RouterClass<TSwitchingState extends object> {
     const {operation, entry} = this._requireTransition();
 
     runInAction(() => {
-      entry.mergePendingStatePart();
+      entry._mergePendingStatePart();
 
       this._active = {
         operation,
@@ -637,7 +729,7 @@ export class RouterClass<TSwitchingState extends object> {
   }
 }
 
-export type RouterOperation = 'reset' | 'push' | 'replace' | 'back';
+export type RouterOperation = 'reset' | 'push' | 'replace' | 'back' | 'forward';
 
 export type ActiveEntry = {
   operation: RouterOperation;
@@ -697,6 +789,7 @@ export type SnapshotEntry = {
    */
   states: number[];
   previous?: SnapshotEntry;
+  next?: SnapshotEntry;
 };
 
 export type Snapshot = {

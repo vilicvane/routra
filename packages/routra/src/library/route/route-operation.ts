@@ -11,6 +11,7 @@ export type RouteOperationTarget = {
   path: string[];
   stateMap: Map<number, object>;
   previous: RouteTarget | undefined;
+  next: RouteTarget | undefined;
 };
 
 export function createRouteOperation(

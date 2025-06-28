@@ -391,52 +391,55 @@ test('$snapshot', async () => {
   const snapshot = router_1.$snapshot!;
 
   expect(snapshot).toMatchInlineSnapshot(`
-    {
-      "entry": {
+{
+  "entry": {
+    "inputs": [
+      undefined,
+    ],
+    "next": undefined,
+    "path": [
+      "about",
+    ],
+    "previous": {
+      "inputs": [
+        undefined,
+        undefined,
+      ],
+      "next": undefined,
+      "path": [
+        "home",
+        "hello",
+      ],
+      "previous": {
         "inputs": [
           undefined,
         ],
+        "next": undefined,
         "path": [
-          "about",
+          "home",
         ],
-        "previous": {
-          "inputs": [
-            undefined,
-            undefined,
-          ],
-          "path": [
-            "home",
-            "hello",
-          ],
-          "previous": {
-            "inputs": [
-              undefined,
-            ],
-            "path": [
-              "home",
-            ],
-            "previous": undefined,
-            "states": [
-              1,
-            ],
-          },
-          "states": [
-            1,
-            2,
-          ],
-        },
+        "previous": undefined,
         "states": [
-          0,
+          1,
         ],
       },
-      "operation": "push",
       "states": [
-        {},
-        {},
-        {},
+        1,
+        2,
       ],
-    }
-  `);
+    },
+    "states": [
+      0,
+    ],
+  },
+  "operation": "push",
+  "states": [
+    {},
+    {},
+    {},
+  ],
+}
+`);
 
   const router_2 = routra(schema);
 
@@ -446,11 +449,175 @@ test('$snapshot', async () => {
   expect(router_2.home.hello.$active).toBe(false);
   expect(router_2.about.$active).toBe(true);
 
-  await router_2.$backTo(router_2.home)?.$go().$completed;
+  await router_2.$backTo(router_2.home)!.$go().$completed;
 
   expect(router_2.home.$active).toBe(true);
   expect(router_2.home.hello.$active).toBe(true);
   expect(router_2.about.$active).toBe(false);
+
+  expect(router_2.$snapshot).toMatchInlineSnapshot(`
+{
+  "entry": {
+    "inputs": [
+      undefined,
+      undefined,
+    ],
+    "next": {
+      "inputs": [
+        undefined,
+      ],
+      "next": undefined,
+      "path": [
+        "about",
+      ],
+      "previous": undefined,
+      "states": [
+        2,
+      ],
+    },
+    "path": [
+      "home",
+      "hello",
+    ],
+    "previous": {
+      "inputs": [
+        undefined,
+      ],
+      "next": undefined,
+      "path": [
+        "home",
+      ],
+      "previous": undefined,
+      "states": [
+        0,
+      ],
+    },
+    "states": [
+      0,
+      1,
+    ],
+  },
+  "operation": "back",
+  "states": [
+    {},
+    {},
+    {},
+  ],
+}
+`);
+
+  await router_2.$forward.$go().$completed;
+
+  expect(router_2.home.$active).toBe(false);
+  expect(router_2.home.hello.$active).toBe(false);
+  expect(router_2.about.$active).toBe(true);
+
+  expect(router_2.$snapshot).toMatchInlineSnapshot(`
+{
+  "entry": {
+    "inputs": [
+      undefined,
+    ],
+    "next": undefined,
+    "path": [
+      "about",
+    ],
+    "previous": {
+      "inputs": [
+        undefined,
+        undefined,
+      ],
+      "next": undefined,
+      "path": [
+        "home",
+        "hello",
+      ],
+      "previous": {
+        "inputs": [
+          undefined,
+        ],
+        "next": undefined,
+        "path": [
+          "home",
+        ],
+        "previous": undefined,
+        "states": [
+          1,
+        ],
+      },
+      "states": [
+        1,
+        2,
+      ],
+    },
+    "states": [
+      0,
+    ],
+  },
+  "operation": "forward",
+  "states": [
+    {},
+    {},
+    {},
+  ],
+}
+`);
+
+  await router_2.$back.$go().$completed;
+  await router_2.$back.$go().$completed;
+
+  await router_2.$forwardTo(router_2.about)!.$go().$completed;
+
+  expect(router_2.$snapshot).toMatchInlineSnapshot(`
+{
+  "entry": {
+    "inputs": [
+      undefined,
+    ],
+    "next": undefined,
+    "path": [
+      "about",
+    ],
+    "previous": {
+      "inputs": [
+        undefined,
+        undefined,
+      ],
+      "next": undefined,
+      "path": [
+        "home",
+        "hello",
+      ],
+      "previous": {
+        "inputs": [
+          undefined,
+        ],
+        "next": undefined,
+        "path": [
+          "home",
+        ],
+        "previous": undefined,
+        "states": [
+          1,
+        ],
+      },
+      "states": [
+        1,
+        2,
+      ],
+    },
+    "states": [
+      0,
+    ],
+  },
+  "operation": "forward",
+  "states": [
+    {},
+    {},
+    {},
+  ],
+}
+`);
 });
 
 type RouteViewEntry<T extends RouteNodeClass__> = ReturnType<

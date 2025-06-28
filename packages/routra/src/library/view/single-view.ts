@@ -84,7 +84,7 @@ export class SingleViewEntry__ extends AbstractViewEntry<RouteNodeClass__> {
 
     runInAction(() => {
       if (this._blockedActive) {
-        this._blockedActive.updateTransitionBlock(this, {
+        this._blockedActive._updateTransitionBlock(this, {
           entering: false,
           leaving: false,
         });
@@ -93,7 +93,7 @@ export class SingleViewEntry__ extends AbstractViewEntry<RouteNodeClass__> {
       }
 
       if (this._blockedTransition) {
-        this._blockedTransition.updateTransitionBlock(this, {
+        this._blockedTransition._updateTransitionBlock(this, {
           entering: false,
           leaving: false,
         });
@@ -118,7 +118,7 @@ export class SingleViewEntry__ extends AbstractViewEntry<RouteNodeClass__> {
 
     runInAction(() => {
       if (blockedActive && blockedActive !== active) {
-        blockedActive.updateTransitionBlock(this, {
+        blockedActive._updateTransitionBlock(this, {
           entering: false,
           leaving: false,
         });
@@ -129,7 +129,7 @@ export class SingleViewEntry__ extends AbstractViewEntry<RouteNodeClass__> {
         blockedTransition !== transition &&
         blockedTransition !== active
       ) {
-        blockedTransition.updateTransitionBlock(this, {
+        blockedTransition._updateTransitionBlock(this, {
           entering: false,
           leaving: false,
         });
@@ -141,12 +141,12 @@ export class SingleViewEntry__ extends AbstractViewEntry<RouteNodeClass__> {
       if (active && transition) {
         // Transition going on, but treated as stable for single view.
 
-        active.updateTransitionBlock(this, {
+        active._updateTransitionBlock(this, {
           entering: false,
           leaving: false,
         });
 
-        transition.updateTransitionBlock(this, {
+        transition._updateTransitionBlock(this, {
           entering: false,
           leaving: false,
         });
@@ -160,7 +160,7 @@ export class SingleViewEntry__ extends AbstractViewEntry<RouteNodeClass__> {
           this._blockedActive = active;
         }
 
-        active.updateTransitionBlock(this, {
+        active._updateTransitionBlock(this, {
           entering: false,
           leaving: blocked,
         });
@@ -174,7 +174,7 @@ export class SingleViewEntry__ extends AbstractViewEntry<RouteNodeClass__> {
           this._blockedTransition = transition;
         }
 
-        transition.updateTransitionBlock(this, {
+        transition._updateTransitionBlock(this, {
           entering: blocked,
           leaving: false,
         });
