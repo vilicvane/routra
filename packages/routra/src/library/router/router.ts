@@ -11,6 +11,7 @@ import type {
   RouteNodeClass__,
   RouteNode__,
   RouteOperation__,
+  RouteSnapshotSegment,
   RouteSwitching,
   RouteSwitching__,
   RouteTarget,
@@ -125,20 +126,19 @@ export class RouterClass<TSwitchingState extends object> {
 
     const {operation, entry} = activeEntry;
 
-    const stateObjects: object[] = [];
+    const objects: object[] = [];
 
     return {
       operation,
       entry: buildEntry('head', entry.getTarget('head')),
-      states: stateObjects.map(stateObject => toJS(stateObject)),
+      objects: objects.map(object => toJS(object)),
     };
 
     function buildEntry(
       position: 'head' | 'left' | 'right',
       {path, stateMap, previous, next}: RouteTarget,
     ): SnapshotEntry {
-      const inputs: unknown[] = [];
-      const states: number[] = [];
+      const states: SnapshotState[] = [];
 
       let upperSchemas = schemas;
 
@@ -150,19 +150,16 @@ export class RouterClass<TSwitchingState extends object> {
         const {$state: schemaState} = schema;
 
         if (typeof schemaState === 'function') {
-          const input = stateInputMap.get([state, schemaState]);
+          const value = stateInputMap.get([state, schemaState]);
 
-          inputs.push(input);
-          states.push(-1);
+          states.push({value});
         } else {
-          inputs.push(undefined);
+          const index = objects.indexOf(state);
 
-          const stateIndex = stateObjects.indexOf(state);
-
-          if (stateIndex >= 0) {
-            states.push(stateIndex);
+          if (index >= 0) {
+            states.push(index);
           } else {
-            states.push(stateObjects.push(state) - 1);
+            states.push(objects.push(state) - 1);
           }
         }
 
@@ -171,7 +168,6 @@ export class RouterClass<TSwitchingState extends object> {
 
       return {
         path,
-        inputs,
         states,
         previous:
           position !== 'right' && previous
@@ -289,12 +285,12 @@ export class RouterClass<TSwitchingState extends object> {
     return next ? createRouterBackForward(this, 'forward', next) : undefined;
   }
 
-  $restore({operation, entry, states}: Snapshot): void {
+  $restore({operation, entry, objects}: Snapshot): void {
     if (this._transition || this._switching) {
       throw new Error('Cannot restore during transition or switching');
     }
 
-    const observableStates = states.map(state => observable(state));
+    const observableObjects = objects.map(object => observable(object));
 
     const stateInputMap = this._stateInputMap;
 
@@ -320,27 +316,28 @@ export class RouterClass<TSwitchingState extends object> {
       position: 'head' | 'left' | 'right',
       entry: SnapshotEntry,
     ): RouteTarget {
-      const {
-        path,
-        // Adding defaults for compatibility
-        inputs = [],
-        states: stateIndexes,
-        previous,
-        next,
-      } = entry;
+      const {path, states, previous, next} = entry;
 
       const stateMap = new Map<number, object>();
 
       let upperSchemas = schemas;
 
-      for (const [pathIndex, stateIndex] of stateIndexes.entries()) {
+      for (const [pathIndex, snapshotState] of states.entries()) {
         const key = path[pathIndex] as RouteKey;
 
         const schema = getChildSchema(upperSchemas, key);
         const {$state: schemaState} = schema;
 
         if (typeof schemaState === 'function') {
-          const input = inputs[pathIndex];
+          let input: unknown;
+
+          if (typeof snapshotState === 'number') {
+            console.warn('State input missing in snapshot');
+            input = undefined;
+          } else {
+            input = snapshotState.value;
+          }
+
           const state = schemaState(input, createMergedState(stateMap));
 
           assertState(state, key);
@@ -350,14 +347,23 @@ export class RouterClass<TSwitchingState extends object> {
           stateInputMap.set([observableState, schemaState], input);
           stateMap.set(pathIndex, observableState);
         } else {
-          const state =
-            stateIndex >= 0 ? observableStates[stateIndex] : undefined;
+          if (typeof snapshotState === 'number') {
+            const state = observableObjects[snapshotState];
 
-          if (!state) {
-            throw new TypeError('State missing in snapshot');
+            if (!state) {
+              throw new TypeError('State missing in snapshot');
+            }
+
+            stateMap.set(pathIndex, state);
+          } else {
+            const {value} = snapshotState;
+
+            if (typeof value === 'object' && value !== null) {
+              stateMap.set(pathIndex, observable(value));
+            } else {
+              throw new TypeError('State value is not an object in snapshot');
+            }
           }
-
-          stateMap.set(pathIndex, state);
         }
 
         upperSchemas = schema;
@@ -377,6 +383,44 @@ export class RouterClass<TSwitchingState extends object> {
         statePart: undefined,
       };
     }
+  }
+
+  /** @internal */
+  _snapshot(
+    path: string[],
+    stateMapUpdate: Map<number, object>,
+  ): RouteSnapshotSegment[] {
+    const stateMap = this._buildStateMap(
+      path,
+      stateMapUpdate,
+      this._active?.entry,
+    );
+
+    const stateInputMap = this._stateInputMap;
+
+    const segments: RouteSnapshotSegment[] = [];
+
+    let upperSchemas = this._schemas;
+
+    for (const [index, key] of path.entries()) {
+      const schema = getChildSchema(upperSchemas, key as RouteKey);
+
+      const state = stateMap.get(index)!;
+
+      const {$state: schemaState} = schema;
+
+      if (typeof schemaState === 'function') {
+        const value = stateInputMap.get([state, schemaState]);
+
+        segments.push({name: key, state: value});
+      } else {
+        segments.push({name: key, state: toJS(state)});
+      }
+
+      upperSchemas = schema;
+    }
+
+    return segments;
   }
 
   /** @internal */
@@ -781,19 +825,20 @@ export type RouterSwitching<TRouter extends Router__> =
 
 export type SnapshotEntry = {
   path: string[];
-  inputs: unknown[];
   /**
    * Indexed by path segment index; and the value is the index of the state in
    * snapshot. Using a separate states array to preserve referencing same
    * objects by different entries.
    */
-  states: number[];
+  states: SnapshotState[];
   previous?: SnapshotEntry;
   next?: SnapshotEntry;
 };
 
+export type SnapshotState = number | {value: unknown};
+
 export type Snapshot = {
   operation: RouterOperation;
   entry: SnapshotEntry;
-  states: object[];
+  objects: object[];
 };

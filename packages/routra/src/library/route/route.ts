@@ -50,6 +50,8 @@ export function createRoute(
   );
 }
 
+declare const __static_type: unique symbol;
+
 export class RouteNodeClass<
   TSchema,
   TSwitchingState extends object,
@@ -226,9 +228,16 @@ export class RouteClass<
   get $replace(): RouteOperation<TMergedState, TSwitchingState> {
     return this.$router._replace(this.$path, this._stateMapUpdate);
   }
+
+  $snapshot(): RouteSnapshotSegment[] {
+    return this.$router._snapshot(this.$path, this._stateMapUpdate);
+  }
 }
 
-declare const __static_type: unique symbol;
+export type RouteSnapshotSegment = {
+  name: string;
+  state: unknown;
+};
 
 type RouteStateSetterBivariance<
   TSchema,

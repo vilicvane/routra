@@ -393,27 +393,17 @@ test('$snapshot', async () => {
   expect(snapshot).toMatchInlineSnapshot(`
 {
   "entry": {
-    "inputs": [
-      undefined,
-    ],
     "next": undefined,
     "path": [
       "about",
     ],
     "previous": {
-      "inputs": [
-        undefined,
-        undefined,
-      ],
       "next": undefined,
       "path": [
         "home",
         "hello",
       ],
       "previous": {
-        "inputs": [
-          undefined,
-        ],
         "next": undefined,
         "path": [
           "home",
@@ -432,12 +422,12 @@ test('$snapshot', async () => {
       0,
     ],
   },
-  "operation": "push",
-  "states": [
+  "objects": [
     {},
     {},
     {},
   ],
+  "operation": "push",
 }
 `);
 
@@ -458,14 +448,7 @@ test('$snapshot', async () => {
   expect(router_2.$snapshot).toMatchInlineSnapshot(`
 {
   "entry": {
-    "inputs": [
-      undefined,
-      undefined,
-    ],
     "next": {
-      "inputs": [
-        undefined,
-      ],
       "next": undefined,
       "path": [
         "about",
@@ -480,9 +463,6 @@ test('$snapshot', async () => {
       "hello",
     ],
     "previous": {
-      "inputs": [
-        undefined,
-      ],
       "next": undefined,
       "path": [
         "home",
@@ -497,12 +477,12 @@ test('$snapshot', async () => {
       1,
     ],
   },
-  "operation": "back",
-  "states": [
+  "objects": [
     {},
     {},
     {},
   ],
+  "operation": "back",
 }
 `);
 
@@ -515,27 +495,17 @@ test('$snapshot', async () => {
   expect(router_2.$snapshot).toMatchInlineSnapshot(`
 {
   "entry": {
-    "inputs": [
-      undefined,
-    ],
     "next": undefined,
     "path": [
       "about",
     ],
     "previous": {
-      "inputs": [
-        undefined,
-        undefined,
-      ],
       "next": undefined,
       "path": [
         "home",
         "hello",
       ],
       "previous": {
-        "inputs": [
-          undefined,
-        ],
         "next": undefined,
         "path": [
           "home",
@@ -554,12 +524,12 @@ test('$snapshot', async () => {
       0,
     ],
   },
-  "operation": "forward",
-  "states": [
+  "objects": [
     {},
     {},
     {},
   ],
+  "operation": "forward",
 }
 `);
 
@@ -571,27 +541,17 @@ test('$snapshot', async () => {
   expect(router_2.$snapshot).toMatchInlineSnapshot(`
 {
   "entry": {
-    "inputs": [
-      undefined,
-    ],
     "next": undefined,
     "path": [
       "about",
     ],
     "previous": {
-      "inputs": [
-        undefined,
-        undefined,
-      ],
       "next": undefined,
       "path": [
         "home",
         "hello",
       ],
       "previous": {
-        "inputs": [
-          undefined,
-        ],
         "next": undefined,
         "path": [
           "home",
@@ -610,12 +570,12 @@ test('$snapshot', async () => {
       0,
     ],
   },
-  "operation": "forward",
-  "states": [
+  "objects": [
     {},
     {},
     {},
   ],
+  "operation": "forward",
 }
 `);
 });
