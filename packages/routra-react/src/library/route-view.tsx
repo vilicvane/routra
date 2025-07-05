@@ -3,6 +3,7 @@ import type {
   AnimationEventHandler,
   ComponentType,
   ReactElement,
+  ReactNode,
   TransitionEvent,
   TransitionEventHandler,
 } from 'react';
@@ -16,12 +17,14 @@ export const RouteContext = createContext<RouteContextObject>(undefined!);
 
 export type RouteViewProps<TRoute extends RouteNodeClass__> = {
   entry: ViewEntry<TRoute>;
-  component: ComponentType<RouteComponentProps<TRoute>>;
-};
+} & (
+  | {component: ComponentType<RouteComponentProps<TRoute>>}
+  | {children: ReactNode}
+);
 
 export const RouteView = <TRoute extends RouteNodeClass__>({
   entry,
-  component: Component,
+  ...props
 }: RouteViewProps<TRoute>): ReactElement => {
   const onAnimationOrTransitionEnd = useEvent(
     ({target, currentTarget}: AnimationEvent | TransitionEvent) => {
@@ -58,9 +61,21 @@ export const RouteView = <TRoute extends RouteNodeClass__>({
     };
   }, [entry, transition]);
 
+  const {
+    component: Component,
+    children,
+  }: {
+    component?: ComponentType<RouteComponentProps<TRoute>>;
+    children?: ReactNode;
+  } = props;
+
   return (
     <RouteContext.Provider value={context}>
-      <Component view={entry} transition={transition} />
+      {Component ? (
+        <Component view={entry} transition={transition} />
+      ) : (
+        children
+      )}
     </RouteContext.Provider>
   );
 };

@@ -1,5 +1,5 @@
 import {observer} from 'mobx-react';
-import type {ComponentType} from 'react';
+import type {ComponentType, ReactNode} from 'react';
 import React, {useContext} from 'react';
 import type {IView, RouteNodeClass__, ViewEntry} from 'routra';
 
@@ -13,11 +13,13 @@ export type RouteComponentProps<TRoute extends RouteNodeClass__> = {
 
 export type RouteProps<TRoute extends RouteNodeClass__> = {
   view: IView<TRoute>;
-  component: ComponentType<RouteComponentProps<TRoute>>;
-};
+} & (
+  | {component: ComponentType<RouteComponentProps<TRoute>>}
+  | {children: ReactNode}
+);
 
 export const Route = observer(
-  <TRoute extends RouteNodeClass__>({view, component}: RouteProps<TRoute>) => {
+  <TRoute extends RouteNodeClass__>({view, ...props}: RouteProps<TRoute>) => {
     const context = useContext(RouteContext);
 
     if (context) {
@@ -25,7 +27,7 @@ export const Route = observer(
     }
 
     return view.$entries.map(entry => (
-      <RouteView key={entry.$key} entry={entry} component={component} />
+      <RouteView key={entry.$key} entry={entry} {...props} />
     ));
   },
 );
