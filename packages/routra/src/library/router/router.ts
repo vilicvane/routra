@@ -356,7 +356,7 @@ export class RouterClass<TSwitchingState extends object> {
 
             stateMap.set(pathIndex, state);
           } else {
-            const {value} = snapshotState;
+            const {value = {}} = snapshotState;
 
             if (typeof value === 'object' && value !== null) {
               stateMap.set(pathIndex, observable(value));
