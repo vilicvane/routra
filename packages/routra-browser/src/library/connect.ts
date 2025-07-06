@@ -55,7 +55,9 @@ export function connect(
       case 'forward':
         try {
           router[`$${reason}`]();
-        } catch {
+        } catch (error) {
+          console.error(error);
+
           history
             .restore(
               convertRoutraSnapshotToBrowserHistorySnapshot(router.$snapshot!),
@@ -165,7 +167,7 @@ export function connect(
 export function getRouteRef(route: RouteClass__): string {
   return (
     route
-      .$snapshot()
+      ._snapshot_segments()
       .map(({name, state}) => `/${name}:${encodeDataUriComponent(state)}`)
       .join('') || '/'
   );
@@ -189,8 +191,12 @@ function gracefulDecodeDataUriComponent(encodedData: string): unknown {
 
 function encodeDataUriComponent(data: unknown): string {
   if (typeof data === 'object' && data !== null) {
-    if (Object.values(data).every(value => typeof value === 'string')) {
-      return new URLSearchParams(data as Record<string, string>).toString();
+    const entries = Object.entries(data).filter(
+      ([, value]) => value !== undefined,
+    );
+
+    if (entries.every(([, value]) => typeof value === 'string')) {
+      return new URLSearchParams(entries).toString();
     }
   }
 

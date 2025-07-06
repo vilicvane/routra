@@ -27,7 +27,7 @@ abstract class View<TRoute extends RouteNodeClass__> {
         return mergedEntry;
       }
 
-      mergedEntry = createMergedObjectProxy([
+      mergedEntry = createMergedObjectProxy(() => [
         entry,
         entry._match.entry.mergedState,
       ]) as ViewEntry<TRoute>;

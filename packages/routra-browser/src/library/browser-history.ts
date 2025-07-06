@@ -422,6 +422,10 @@ export class BrowserHistory<TData = never> {
   }
 
   private restoreActive(): void {
+    debug('restore active');
+    debug('expected', this._snapshot);
+    debug('tracked', this.tracked);
+
     const expectedActiveIndex = getActiveHistoryEntryIndex(this._snapshot);
     const trackedActiveIndex = getActiveHistoryEntryIndex(this.tracked);
 
@@ -476,9 +480,14 @@ export class BrowserHistory<TData = never> {
   }
 
   private pushEntry(
-    {id, ref, data}: BrowserHistoryEntry<TData>,
+    entry: BrowserHistoryEntry<TData>,
     toPushState: boolean,
   ): BrowserHistorySnapshot<TData> {
+    debug('push entry', entry, toPushState);
+    debug('tracked', this.tracked);
+
+    const {id, ref, data} = entry;
+
     const tracked = this.tracked;
 
     const {entries} = tracked;
@@ -506,10 +515,15 @@ export class BrowserHistory<TData = never> {
   }
 
   private replaceEntry(
-    {id, ref, data}: BrowserHistoryEntry<TData>,
+    entry: BrowserHistoryEntry<TData>,
     index?: number,
   ): BrowserHistorySnapshot<TData> {
+    debug('replace entry', entry, index);
+    debug('tracked', this.tracked);
+
     const {entries} = this.tracked;
+
+    const {id, ref, data} = entry;
 
     if (index === undefined) {
       index = entries.findIndex(entry => entry.id === id);
@@ -549,6 +563,8 @@ export class BrowserHistory<TData = never> {
     snapshot: BrowserHistorySnapshot<TData>,
     reason: BrowserHistoryChangeReason,
   ): void {
+    debug('emit change', snapshot, reason);
+
     for (const callback of this.changeCallbackSet) {
       try {
         callback(snapshot, reason);

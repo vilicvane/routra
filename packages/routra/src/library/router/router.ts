@@ -386,7 +386,7 @@ export class RouterClass<TSwitchingState extends object> {
   }
 
   /** @internal */
-  _snapshot(
+  _snapshot_segments(
     path: string[],
     stateMapUpdate: Map<number, object>,
   ): RouteSnapshotSegment[] {

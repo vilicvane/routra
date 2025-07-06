@@ -229,8 +229,9 @@ export class RouteClass<
     return this.$router._replace(this.$path, this._stateMapUpdate);
   }
 
-  $snapshot(): RouteSnapshotSegment[] {
-    return this.$router._snapshot(this.$path, this._stateMapUpdate);
+  /** @internal */
+  _snapshot_segments(): RouteSnapshotSegment[] {
+    return this.$router._snapshot_segments(this.$path, this._stateMapUpdate);
   }
 }
 
