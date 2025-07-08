@@ -11,7 +11,6 @@ const debug = Debug('routra-browser:browser-history');
 export type BrowserHistoryChangeCallbackRemover = () => void;
 
 export type BrowserHistoryEntry<TData> = {
-  readonly id: number;
   readonly ref: string;
   readonly data: TData | undefined;
 };
@@ -23,11 +22,10 @@ export type BrowserHistorySnapshot<TData> = {
 
 export type BrowserHistoryChangeReason =
   | 'reset'
-  | 'back'
-  | 'forward'
   | 'push'
   | 'replace'
-  | 'restore';
+  | 'restore'
+  | number;
 
 export type BrowserHistoryChangeCallback<TData> = (
   snapshot: BrowserHistorySnapshot<TData>,
@@ -56,16 +54,16 @@ export type BrowserHistoryOptions = {
 };
 
 export class BrowserHistory<TData = never> {
-  private _snapshot: BrowserHistorySnapshot<TData>;
+  private _snapshot!: BrowserHistorySnapshot<TData>;
 
-  private tracked: BrowserHistorySnapshot<TData>;
+  private tracked!: BrowserHistorySnapshot<TData>;
 
   private restoring = false;
 
   private restoringPromise = Promise.resolve();
   private restoringPromiseResolver: (() => void) | undefined;
 
-  private lastUsedId = 0;
+  private session!: number;
 
   private prefix: string;
   private hash: boolean;
@@ -78,25 +76,29 @@ export class BrowserHistory<TData = never> {
 
     window.addEventListener('popstate', this.onPopState);
 
+    this.reset();
+  }
+
+  private reset(): void {
+    console.assert(!this.restoring);
+
+    this.session = Date.now();
+
     const state = history.state as BrowserHistoryState<TData> | undefined;
 
-    let id: number;
     let data: TData | undefined;
 
-    if (state) {
-      id = state.id;
-      data = state.data;
-
-      this.lastUsedId = id;
-    } else {
-      id = this.getNextId();
-
-      history.replaceState({id}, '');
-    }
+    history.replaceState(
+      {
+        index: 0,
+        session: this.session,
+        data: state?.data,
+      } satisfies BrowserHistoryState<TData>,
+      '',
+    );
 
     const entries: BrowserHistoryEntry<TData>[] = [
       {
-        id,
         ref: this.getRefByHRef(this.url),
         data,
       },
@@ -104,7 +106,7 @@ export class BrowserHistory<TData = never> {
 
     this._snapshot = this.tracked = {
       entries,
-      active: id,
+      active: 0,
     };
   }
 
@@ -113,11 +115,11 @@ export class BrowserHistory<TData = never> {
   }
 
   get ref(): string {
-    return getActiveHistoryEntry(this.snapshot).ref;
+    return this.snapshot.entries[this.snapshot.active].ref;
   }
 
   get index(): number {
-    return getActiveHistoryEntryIndex(this.snapshot);
+    return this.snapshot.active;
   }
 
   get length(): number {
@@ -192,6 +194,12 @@ export class BrowserHistory<TData = never> {
     history.forward();
   }
 
+  async go(step: number): Promise<void> {
+    await this.restoringPromise;
+
+    history.go(step);
+  }
+
   async push(ref: string, data?: TData): Promise<void> {
     return this._push(ref, data, true);
   }
@@ -199,10 +207,7 @@ export class BrowserHistory<TData = never> {
   async replace(ref: string, data?: TData): Promise<void> {
     await this.restoringPromise;
 
-    const {active: id} = this.tracked;
-
     const snapshot = this.replaceEntry({
-      id,
       ref,
       data,
     });
@@ -280,7 +285,7 @@ export class BrowserHistory<TData = never> {
   }
 
   private onPopState = (event: PopStateEvent): void => {
-    const {entries: trackedEntries, active} = this.tracked;
+    const {entries: trackedEntries, active: trackedActiveIndex} = this.tracked;
 
     const state = event.state as BrowserHistoryState<TData> | null;
 
@@ -291,30 +296,26 @@ export class BrowserHistory<TData = never> {
       return;
     }
 
-    const {id, data} = state;
-
-    if (id > this.lastUsedId) {
-      this.lastUsedId = id;
+    if (state.session !== this.session) {
+      this.reset();
+      this.emitChange(this._snapshot, 'reset');
+      return;
     }
 
-    const reason: BrowserHistoryChangeReason =
-      id < active ? 'back' : id > active ? 'forward' : 'push';
+    const {index} = state;
+
+    if (index === trackedActiveIndex) {
+      console.error('Unexpected history state index.');
+      return;
+    }
+
+    const reason: BrowserHistoryChangeReason = index - trackedActiveIndex;
 
     const entries = [...trackedEntries];
 
-    const index = entries.findIndex(entry => entry.id >= id);
-
-    if (index < 0 || entries[index].id > id) {
-      entries.splice(index < 0 ? entries.length : index, 0, {
-        id,
-        ref: this.getRefByHRef(this.url),
-        data,
-      });
-    }
-
     const snapshot: BrowserHistorySnapshot<TData> = {
       entries,
-      active: id,
+      active: index,
     };
 
     this.tracked = snapshot;
@@ -340,12 +341,10 @@ export class BrowserHistory<TData = never> {
     const tracked = this.tracked;
 
     const {entries: expectedEntries} = expected;
-    const {entries: trackedEntries} = tracked;
+    const {entries: trackedEntries, active: trackedActiveIndex} = tracked;
 
     const lastExpectedIndex = expectedEntries.length - 1;
     const lastTrackedIndex = trackedEntries.length - 1;
-
-    const trackedActiveIndex = getActiveHistoryEntryIndex(tracked);
 
     const minLength = Math.min(expectedEntries.length, trackedEntries.length);
 
@@ -408,10 +407,7 @@ export class BrowserHistory<TData = never> {
     }
 
     if (trackedActiveIndex === firstMismatchedIndex) {
-      this.replaceEntry(
-        expectedEntries[trackedActiveIndex],
-        trackedActiveIndex,
-      );
+      this.replaceEntry(expectedEntries[trackedActiveIndex]);
     }
 
     for (const entry of expectedEntries.slice(trackedActiveIndex + 1)) {
@@ -426,8 +422,8 @@ export class BrowserHistory<TData = never> {
     debug('expected', this._snapshot);
     debug('tracked', this.tracked);
 
-    const expectedActiveIndex = getActiveHistoryEntryIndex(this._snapshot);
-    const trackedActiveIndex = getActiveHistoryEntryIndex(this.tracked);
+    const {active: expectedActiveIndex} = this._snapshot;
+    const {active: trackedActiveIndex} = this.tracked;
 
     if (trackedActiveIndex < expectedActiveIndex) {
       history.forward();
@@ -465,7 +461,6 @@ export class BrowserHistory<TData = never> {
 
     const snapshot = this.pushEntry(
       {
-        id: this.getNextId(),
         ref,
         data,
       },
@@ -486,17 +481,15 @@ export class BrowserHistory<TData = never> {
     debug('push entry', entry, toPushState);
     debug('tracked', this.tracked);
 
-    const {id, ref, data} = entry;
+    const {ref, data} = entry;
 
-    const tracked = this.tracked;
+    const {entries, active: trackedActiveIndex} = this.tracked;
 
-    const {entries} = tracked;
-
-    const activeIndex = getActiveHistoryEntryIndex(tracked);
+    const index = trackedActiveIndex + 1;
 
     const snapshot: BrowserHistorySnapshot<TData> = {
-      entries: [...entries.slice(0, activeIndex + 1), {id, ref, data}],
-      active: id,
+      entries: [...entries.slice(0, index), {ref, data}],
+      active: index,
     };
 
     this.tracked = snapshot;
@@ -505,9 +498,25 @@ export class BrowserHistory<TData = never> {
       const href = this.getHRefByRef(ref);
 
       try {
-        history.pushState({id, data}, '', href);
+        history.pushState(
+          {
+            index,
+            session: this.session,
+            data,
+          } satisfies BrowserHistoryState<TData>,
+          '',
+          href,
+        );
       } catch (error) {
-        history.pushState({id}, '', href);
+        history.pushState(
+          {
+            index,
+            session: this.session,
+            data: undefined,
+          } satisfies BrowserHistoryState<TData>,
+          '',
+          href,
+        );
       }
     }
 
@@ -516,30 +525,21 @@ export class BrowserHistory<TData = never> {
 
   private replaceEntry(
     entry: BrowserHistoryEntry<TData>,
-    index?: number,
   ): BrowserHistorySnapshot<TData> {
-    debug('replace entry', entry, index);
+    debug('replace entry', entry);
     debug('tracked', this.tracked);
 
-    const {entries} = this.tracked;
+    const {entries, active: trackedActiveIndex} = this.tracked;
 
-    const {id, ref, data} = entry;
-
-    if (index === undefined) {
-      index = entries.findIndex(entry => entry.id === id);
-
-      if (index < 0) {
-        throw new Error(`Cannot find entry with id ${id} to replace`);
-      }
-    }
+    const {ref, data} = entry;
 
     const snapshot: BrowserHistorySnapshot<TData> = {
       entries: [
-        ...entries.slice(0, index),
-        {id, ref, data},
-        ...entries.slice(index + 1),
+        ...entries.slice(0, trackedActiveIndex),
+        {ref, data},
+        ...entries.slice(trackedActiveIndex + 1),
       ],
-      active: id,
+      active: trackedActiveIndex,
     };
 
     this.tracked = snapshot;
@@ -547,16 +547,28 @@ export class BrowserHistory<TData = never> {
     const href = this.getHRefByRef(ref);
 
     try {
-      history.replaceState({id, data}, '', href);
+      history.replaceState(
+        {
+          index: trackedActiveIndex,
+          session: this.session,
+          data,
+        } satisfies BrowserHistoryState<TData>,
+        '',
+        href,
+      );
     } catch (error) {
-      history.replaceState({id}, '', href);
+      history.replaceState(
+        {
+          index: trackedActiveIndex,
+          session: this.session,
+          data: undefined,
+        } satisfies BrowserHistoryState<TData>,
+        '',
+        href,
+      );
     }
 
     return snapshot;
-  }
-
-  private getNextId(): number {
-    return ++this.lastUsedId;
   }
 
   private emitChange(
@@ -576,45 +588,14 @@ export class BrowserHistory<TData = never> {
 }
 
 type BrowserHistoryState<TData> = {
-  id: number;
-  data: TData;
+  index: number;
+  session: number;
+  data: TData | undefined;
 };
 
 function isHistoryEntryEqual<TData>(
   x: BrowserHistoryEntry<TData>,
   y: BrowserHistoryEntry<TData>,
 ): boolean {
-  return (
-    x.id === y.id &&
-    x.ref === y.ref &&
-    JSON.stringify(x.data) === JSON.stringify(y.data)
-  );
-}
-
-function getActiveHistoryEntryIndex<TData>({
-  entries,
-  active: activeId,
-}: BrowserHistorySnapshot<TData>): number {
-  let index = entries.findIndex(entry => entry.id === activeId);
-
-  if (index < 0) {
-    console.error('Invalid history snapshot');
-    index = entries.length - 1;
-  }
-
-  return index;
-}
-
-function getActiveHistoryEntry<TData>({
-  entries,
-  active: activeId,
-}: BrowserHistorySnapshot<TData>): BrowserHistoryEntry<TData> {
-  let entry = entries.find(entry => entry.id === activeId);
-
-  if (!entry) {
-    console.error('Invalid history snapshot');
-    entry = entries[entries.length - 1];
-  }
-
-  return entry;
+  return x.ref === y.ref && JSON.stringify(x.data) === JSON.stringify(y.data);
 }

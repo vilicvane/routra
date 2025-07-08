@@ -179,20 +179,37 @@ export class RouterClass<TSwitchingState extends object> {
     }
   }
 
-  get $back(): RouterBackForward<TSwitchingState> {
-    const {
-      entry,
-      entry: {previous},
-    } = this._requireActive();
+  $step(step: number): RouterBackForward<TSwitchingState> {
+    const {entry} = this._requireActive();
 
-    if (!previous) {
-      throw new Error('No previous entry');
+    if (step === 0) {
+      throw new Error('Step cannot be 0');
     }
 
-    return createRouterBackForward(this, 'back', {
-      ...previous,
-      next: entry.getTarget('right'),
+    const [siblingKey, targetPosition] =
+      step > 0 ? (['next', 'left'] as const) : (['previous', 'right'] as const);
+
+    let sibling = entry[siblingKey];
+
+    let limit = Math.abs(step) - 1;
+
+    while (sibling && limit > 0) {
+      sibling = sibling[siblingKey];
+      limit--;
+    }
+
+    if (!sibling) {
+      throw new Error(`No sibling entry at step ${step}`);
+    }
+
+    return createRouterBackForward(this, step, {
+      ...sibling,
+      next: entry.getTarget(targetPosition),
     });
+  }
+
+  get $back(): RouterBackForward<TSwitchingState> {
+    return this.$step(-1);
   }
 
   get $ableToBack(): boolean {
@@ -211,6 +228,8 @@ export class RouterClass<TSwitchingState extends object> {
 
     let cursor = entry.getTarget('right');
 
+    let step = 1;
+
     outer: while (previous) {
       previous = {
         ...previous,
@@ -226,27 +245,17 @@ export class RouterClass<TSwitchingState extends object> {
       }
 
       previous = previous.previous;
+
+      step++;
     }
 
     return previous
-      ? createRouterBackForward(this, 'back', previous)
+      ? createRouterBackForward(this, -step, previous)
       : undefined;
   }
 
   get $forward(): RouterBackForward<TSwitchingState> {
-    const {
-      entry,
-      entry: {next},
-    } = this._requireActive();
-
-    if (!next) {
-      throw new Error('No next entry');
-    }
-
-    return createRouterBackForward(this, 'forward', {
-      ...next,
-      previous: entry.getTarget('left'),
-    });
+    return this.$step(1);
   }
 
   get $ableToForward(): boolean {
@@ -265,6 +274,8 @@ export class RouterClass<TSwitchingState extends object> {
 
     let cursor = entry.getTarget('left');
 
+    let step = 1;
+
     outer: while (next) {
       next = {
         ...next,
@@ -280,9 +291,11 @@ export class RouterClass<TSwitchingState extends object> {
       }
 
       next = next.next;
+
+      step++;
     }
 
-    return next ? createRouterBackForward(this, 'forward', next) : undefined;
+    return next ? createRouterBackForward(this, step, next) : undefined;
   }
 
   $restore({operation, entry, objects}: Snapshot): void {
@@ -773,7 +786,7 @@ export class RouterClass<TSwitchingState extends object> {
   }
 }
 
-export type RouterOperation = 'reset' | 'push' | 'replace' | 'back' | 'forward';
+export type RouterOperation = 'reset' | 'push' | 'replace' | number;
 
 export type ActiveEntry = {
   operation: RouterOperation;

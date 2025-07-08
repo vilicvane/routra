@@ -1,5 +1,11 @@
 import {autorun} from 'mobx';
-import type {RouteClass__, Router__, Snapshot, SnapshotState} from 'routra';
+import type {
+  RouteClass__,
+  Router__,
+  Snapshot,
+  SnapshotEntry,
+  SnapshotState,
+} from 'routra';
 
 import type {
   BrowserHistoryChangeCallbackRemover,
@@ -51,24 +57,20 @@ export function connect(
           }
         }
         break;
-      case 'back':
-      case 'forward':
+      case 'restore':
+        break;
+      case 'push':
+      case 'replace':
+        console.error('Unexpected history change reason:', reason);
+        break;
+      default:
         try {
-          router[`$${reason}`]();
+          router.$step(reason).$go();
         } catch (error) {
           console.error(error);
 
-          history
-            .restore(
-              convertRoutraSnapshotToBrowserHistorySnapshot(router.$snapshot!),
-            )
-            .catch(console.error);
+          location.reload();
         }
-        break;
-      case 'restore':
-        break;
-      default:
-        console.error('Unexpected history change reason:', reason);
         break;
     }
   });
@@ -82,9 +84,9 @@ export function connect(
     entries,
     active,
   }: BrowserHistorySnapshot<void>): Snapshot {
-    const entry = entries.find(({id}) => id === active)!;
+    const entry = entries[active];
 
-    const segments = entry.ref.match(/\/(?!\$(?:forward|back)$)[^/]+/g) ?? [];
+    const segments = entry.ref.match(/\/[^/]+/g) ?? [];
 
     const path: string[] = [];
     const states: SnapshotState[] = [];
@@ -113,54 +115,65 @@ export function connect(
 
   function convertRoutraSnapshotToBrowserHistorySnapshot({
     entry,
-    objects: states,
+    objects,
   }: Snapshot): BrowserHistorySnapshot<void> {
-    const segments = segmentsConverters.routraToBrowser(entry.path);
-
-    const active = 1;
+    let active = 0;
 
     const entries: BrowserHistoryEntry<void>[] = [
       {
-        id: active,
-        ref:
-          segments
-            .map((segment, index) => {
-              const state = entry.states[index];
-
-              let segmentData: string;
-
-              if (typeof state === 'number') {
-                const encodedData = encodeDataUriComponent(states[state]);
-
-                segmentData = encodedData === '' ? '' : `:${encodedData}`;
-              } else {
-                segmentData = `:${encodeDataUriComponent(state.value)}`;
-              }
-
-              return `/${segment}${segmentData}`;
-            })
-            .join('') || '/',
+        ref: getRef(entry),
         data: undefined,
       },
     ];
 
-    if (entry.previous) {
+    let previous = entry.previous;
+
+    while (previous) {
       entries.unshift({
-        id: active - 1,
-        ref: '/$back',
+        ref: getRef(previous),
         data: undefined,
       });
+
+      previous = previous.previous;
+
+      active++;
     }
 
-    if (entry.next) {
+    let next = entry.next;
+
+    while (next) {
       entries.push({
-        id: active + 1,
-        ref: '/$forward',
+        ref: getRef(next),
         data: undefined,
       });
+
+      next = next.next;
     }
 
     return {entries, active};
+
+    function getRef(entry: SnapshotEntry): string {
+      return (
+        segmentsConverters
+          .routraToBrowser(entry.path)
+          .map((segment, index) => {
+            const state = entry.states[index];
+
+            let segmentData: string;
+
+            if (typeof state === 'number') {
+              const encodedData = encodeDataUriComponent(objects[state]);
+
+              segmentData = encodedData === '' ? '' : `:${encodedData}`;
+            } else {
+              segmentData = `:${encodeDataUriComponent(state.value)}`;
+            }
+
+            return `/${segment}${segmentData}`;
+          })
+          .join('') || '/'
+      );
+    }
   }
 }
 

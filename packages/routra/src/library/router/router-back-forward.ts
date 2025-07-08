@@ -11,7 +11,7 @@ export type RouteBackForwardTarget = {
 
 export function createRouterBackForward(
   router: Router__,
-  operation: 'back' | 'forward',
+  operation: number,
   target: RouteBackForwardTarget,
 ): RouterBack__ {
   return Object.setPrototypeOf(
@@ -35,7 +35,7 @@ export type RouterBack__ = RouterBackForward<object>;
 export class RouterBackForwardClass<TSwitchingState extends object> {
   constructor(
     private router: Router__,
-    private operation: 'back' | 'forward',
+    private operation: number,
     private target: RouteBackForwardTarget,
   ) {}
 
