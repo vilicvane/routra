@@ -3,7 +3,7 @@
   "compilerOptions": {
     "composite": true,
     "rootDir": ".",
-    "outDir": "../../bld/library"
+    "outDir": "../../bld/browser"
   },
   "references": [
     {

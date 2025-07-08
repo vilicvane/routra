@@ -14,7 +14,6 @@
     "bare-test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "test": "npm run lint-prettier && npm run build && npm run lint && npm run bare-test",
     "routra": "pnpm --filter routra",
-    "routra-browser": "pnpm --filter routra-browser",
     "routra-react": "pnpm --filter routra-react"
   },
   "devDependencies": {
