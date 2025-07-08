@@ -431,8 +431,9 @@ export class RouterClass<TSwitchingState extends object> {
   _reset(
     path: string[],
     stateMapUpdate: Map<number, object>,
+    statePart: object | undefined,
   ): RouteOperation__ {
-    return createRouteOperation(this, 'reset', () => {
+    return createRouteOperation(this, 'reset', statePart, () => {
       const stateMap = this._buildStateMap(
         path,
         stateMapUpdate,
@@ -449,8 +450,12 @@ export class RouterClass<TSwitchingState extends object> {
   }
 
   /** @internal */
-  _push(path: string[], stateMapUpdate: Map<number, object>): RouteOperation__ {
-    return createRouteOperation(this, 'push', () => {
+  _push(
+    path: string[],
+    stateMapUpdate: Map<number, object>,
+    statePart: object | undefined,
+  ): RouteOperation__ {
+    return createRouteOperation(this, 'push', statePart, () => {
       const {entry} = this._requireActive();
 
       const stateMap = this._buildStateMap(path, stateMapUpdate, entry);
@@ -468,8 +473,9 @@ export class RouterClass<TSwitchingState extends object> {
   _replace(
     path: string[],
     stateMapUpdate: Map<number, object>,
+    statePart: object | undefined,
   ): RouteOperation__ {
-    return createRouteOperation(this, 'replace', () => {
+    return createRouteOperation(this, 'replace', statePart, () => {
       const {entry} = this._requireActive();
 
       const stateMap = this._buildStateMap(path, stateMapUpdate, entry);

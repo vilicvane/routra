@@ -120,6 +120,23 @@ test('simple case 1', async () => {
       >;
 });
 
+test('simple case 2', async () => {
+  const router = routra({
+    home: {
+      $state: {
+        user: 'vilicvane',
+      },
+    },
+    about: true,
+  });
+
+  await router.about.$reset().$completed;
+
+  await router.home.$update({user: '123'}).$push().$completed;
+
+  expect(router.home.$view().$entries[0].user).toBe('123');
+});
+
 test('switching', async () => {
   const router = routra(
     {

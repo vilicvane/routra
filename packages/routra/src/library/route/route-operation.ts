@@ -17,11 +17,12 @@ export type RouteOperationTarget = {
 export function createRouteOperation(
   router: Router__,
   operation: RouterOperation,
+  operationStatePart: object = {},
   targetBuilder: () => RouteOperationTarget,
 ): RouteOperation<object, object> {
   // E.g.: router.home.$push();
   return Object.setPrototypeOf(
-    (statePart: object = {}) =>
+    (statePart: object = operationStatePart) =>
       router._set(operation, () => {
         return {
           ...targetBuilder(),

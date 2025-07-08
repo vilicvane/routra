@@ -217,16 +217,38 @@ export class RouteClass<
   TMergedState extends object,
   TPath extends string[],
 > extends RouteNodeClass<TSchema, TSwitchingState, TMergedState, TPath> {
+  private _statePart: Partial<TMergedState> | undefined;
+
   get $reset(): RouteOperation<TMergedState, TSwitchingState> {
-    return this.$router._reset(this.$path, this._stateMapUpdate);
+    return this.$router._reset(
+      this.$path,
+      this._stateMapUpdate,
+      this._statePart,
+    );
   }
 
   get $push(): RouteOperation<TMergedState, TSwitchingState> {
-    return this.$router._push(this.$path, this._stateMapUpdate);
+    return this.$router._push(
+      this.$path,
+      this._stateMapUpdate,
+      this._statePart,
+    );
   }
 
   get $replace(): RouteOperation<TMergedState, TSwitchingState> {
-    return this.$router._replace(this.$path, this._stateMapUpdate);
+    return this.$router._replace(
+      this.$path,
+      this._stateMapUpdate,
+      this._statePart,
+    );
+  }
+
+  $update(statePart: Partial<TMergedState>): this {
+    return Object.create(this, {
+      _statePart: {
+        value: statePart,
+      },
+    });
   }
 
   get $ref(): string {
