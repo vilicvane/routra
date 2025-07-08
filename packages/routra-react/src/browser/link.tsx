@@ -9,17 +9,28 @@ export type LinkProps<TRoute extends RouteClass__> = Omit<
   'href'
 > & {
   route: TRoute;
+  replace?: boolean;
 };
 
 export const Link = observer(
-  ({className, route, ...props}: LinkProps<RouteClass__>): JSX.Element => {
+  ({
+    className,
+    route,
+    replace,
+    ...props
+  }: LinkProps<RouteClass__>): JSX.Element => {
     return (
       <a
         className={classNames(className, route.$active && 'active')}
         {...props}
         href={route.$ref}
         onClick={event => {
-          route.$push();
+          if (replace) {
+            route.$replace();
+          } else {
+            route.$push();
+          }
+
           event.preventDefault();
         }}
       />
