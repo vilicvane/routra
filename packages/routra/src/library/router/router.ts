@@ -27,14 +27,20 @@ import type {RouteKey, Schema, SchemaRecord} from '../schema.js';
 
 import type {RouterBackForward} from './router-back-forward.js';
 import {createRouterBackForward} from './router-back-forward.js';
+import type {RouterPlugin} from './router-plugin.js';
 
 export type Router__ = RouterClass<any>;
 
 export type RouterOptions<TSwitchingState extends object> = {
+  plugins?: RouterPlugin[];
   defaultSwitchingState?: TSwitchingState;
 };
 
 export class RouterClass<TSwitchingState extends object> {
+  private readonly _defaultSwitchingState: TSwitchingState | undefined;
+
+  private readonly _plugins: RouterPlugin[];
+
   /** @internal */
   @observable.ref
   accessor _active: ActiveEntry | undefined;
@@ -63,8 +69,7 @@ export class RouterClass<TSwitchingState extends object> {
   constructor(
     /** @internal */
     private _schemas: SchemaRecord,
-    /** @internal */
-    private _options: RouterOptions<TSwitchingState>,
+    {defaultSwitchingState, plugins = []}: RouterOptions<TSwitchingState>,
   ) {
     for (let [key, childSchema] of Object.entries(_schemas)) {
       if (key.startsWith('$')) {
@@ -82,6 +87,14 @@ export class RouterClass<TSwitchingState extends object> {
         new Map(),
       );
     }
+
+    this._defaultSwitchingState = defaultSwitchingState;
+
+    for (const plugin of plugins) {
+      plugin.setup(this);
+    }
+
+    this._plugins = plugins;
   }
 
   get $path(): string[] | undefined {
@@ -398,6 +411,20 @@ export class RouterClass<TSwitchingState extends object> {
     }
   }
 
+  $getRouteRef(route: RouteClass__): string | undefined {
+    const segments = route._snapshot_segments();
+
+    for (const plugin of this._plugins) {
+      const ref = plugin.getRouteRef(segments);
+
+      if (ref !== undefined) {
+        return ref;
+      }
+    }
+
+    return undefined;
+  }
+
   /** @internal */
   _snapshot_segments(
     path: string[],
@@ -501,7 +528,7 @@ export class RouterClass<TSwitchingState extends object> {
     const ref = {};
 
     if (switchingState === undefined) {
-      switchingState = this._options.defaultSwitchingState;
+      switchingState = this._defaultSwitchingState;
 
       if (switchingState === undefined) {
         throw new Error(

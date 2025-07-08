@@ -1,6 +1,7 @@
 import {autorun} from 'mobx';
 import type {
   RouteClass__,
+  RouteSnapshotSegment,
   Router__,
   Snapshot,
   SnapshotEntry,
@@ -8,79 +9,92 @@ import type {
 } from 'routra';
 
 import type {
-  BrowserHistoryChangeCallbackRemover,
   BrowserHistoryEntry,
   BrowserHistorySnapshot,
 } from './browser-history.js';
 import {BrowserHistory} from './browser-history.js';
 
-export function connect(
-  router: Router__,
-  {
-    history = new BrowserHistory(),
-    segments: segmentsConverters = {
+export class RouterPlugin {
+  constructor(
+    private defaultRoute: RouteClass__,
+    private history = new BrowserHistory<void>(),
+    private segmentsConverters: {
+      routraToBrowser: (segments: string[]) => string[];
+      browserToRoutra: (segments: string[]) => string[];
+    } = {
       routraToBrowser: segments => segments,
       browserToRoutra: segments => segments,
     },
-    reset,
-  }: {
-    history?: BrowserHistory<void>;
-    segments?: {
-      routraToBrowser: (segments: string[]) => string[];
-      browserToRoutra: (segments: string[]) => string[];
-    };
-    reset?: RouteClass__;
-  } = {},
-): BrowserHistoryChangeCallbackRemover {
-  const routerAutorunDisposer = autorun(() => {
-    const snapshot = router.$snapshot;
+  ) {}
 
-    if (snapshot) {
-      history
-        .restore(convertRoutraSnapshotToBrowserHistorySnapshot(snapshot))
-        .catch(console.error);
-    }
-  });
+  setup(router: Router__): void {
+    autorun(() => {
+      const snapshot = router.$snapshot;
 
-  const historyChangeCallbackRemover = history.listen((snapshot, reason) => {
-    switch (reason) {
-      case 'reset':
-        try {
-          router.$restore(
-            convertBrowserHistorySnapshotToRoutraSnapshot(snapshot),
-          );
-        } catch (error) {
-          console.error(error);
+      if (snapshot) {
+        this.history
+          .restore(this.convertRoutraSnapshotToBrowserHistorySnapshot(snapshot))
+          .catch(console.error);
+      }
+    });
 
-          if (reset) {
-            reset.$reset();
+    this.history.listen((snapshot, reason) => {
+      switch (reason) {
+        case 'reset':
+          try {
+            router.$restore(
+              this.convertBrowserHistorySnapshotToRoutraSnapshot(snapshot),
+            );
+          } catch (error) {
+            console.error(error);
+
+            this.defaultRoute?.$reset();
           }
-        }
-        break;
-      case 'restore':
-        break;
-      case 'push':
-      case 'replace':
-        console.error('Unexpected history change reason:', reason);
-        break;
-      default:
-        try {
-          router.$step(reason).$go();
-        } catch (error) {
-          console.error(error);
+          break;
+        case 'restore':
+          break;
+        case 'push':
+        case 'replace':
+          console.error('Unexpected history change reason:', reason);
+          break;
+        default:
+          try {
+            router.$step(reason).$go();
+          } catch (error) {
+            console.error(error);
 
-          location.reload();
-        }
-        break;
+            location.reload();
+          }
+          break;
+      }
+    });
+  }
+
+  getRouteRef(segments: RouteSnapshotSegment[]): string | undefined {
+    return (
+      segments
+        .map(({name, state}) => `/${name}:${encodeDataUriComponent(state)}`)
+        .join('') || '/'
+    );
+  }
+
+  private segmentsRoutraToBrowser(segments: string[]): string[] {
+    if (isSegmentsEqual(segments, this.defaultRoute.$path)) {
+      segments = [];
     }
-  });
 
-  return () => {
-    routerAutorunDisposer();
-    historyChangeCallbackRemover();
-  };
+    return this.segmentsConverters.routraToBrowser(segments);
+  }
 
-  function convertBrowserHistorySnapshotToRoutraSnapshot({
+  private segmentsBrowserToRoutra(segments: string[]): string[] {
+    if (segments.length === 0) {
+      segments = this.defaultRoute.$path;
+    }
+
+    return this.segmentsConverters.browserToRoutra(segments);
+  }
+
+  private convertBrowserHistorySnapshotToRoutraSnapshot({
     entries,
     active,
   }: BrowserHistorySnapshot<void>): Snapshot {
@@ -106,17 +120,19 @@ export function connect(
     return {
       operation: 'reset',
       entry: {
-        path: segmentsConverters.browserToRoutra(path),
+        path: this.segmentsBrowserToRoutra(path),
         states,
       },
       objects: [],
     };
   }
 
-  function convertRoutraSnapshotToBrowserHistorySnapshot({
+  private convertRoutraSnapshotToBrowserHistorySnapshot({
     entry,
     objects,
   }: Snapshot): BrowserHistorySnapshot<void> {
+    const that = this;
+
     let active = 0;
 
     const entries: BrowserHistoryEntry<void>[] = [
@@ -154,8 +170,8 @@ export function connect(
 
     function getRef(entry: SnapshotEntry): string {
       return (
-        segmentsConverters
-          .routraToBrowser(entry.path)
+        that
+          .segmentsRoutraToBrowser(entry.path)
           .map((segment, index) => {
             const state = entry.states[index];
 
@@ -177,13 +193,18 @@ export function connect(
   }
 }
 
-export function getRouteRef(route: RouteClass__): string {
-  return (
-    route
-      ._snapshot_segments()
-      .map(({name, state}) => `/${name}:${encodeDataUriComponent(state)}`)
-      .join('') || '/'
-  );
+function isSegmentsEqual(x: string[], y: string[]): boolean {
+  if (x.length !== y.length) {
+    return false;
+  }
+
+  for (let index = 0; index < x.length; index++) {
+    if (x[index] !== y[index]) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function gracefulDecodeDataUriComponent(encodedData: string): unknown {

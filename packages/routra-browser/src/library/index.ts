@@ -1,2 +1,2 @@
 export * from './browser-history.js';
-export * from './connect.js';
+export * from './router-plugin.js';
