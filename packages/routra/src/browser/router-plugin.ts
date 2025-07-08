@@ -1,3 +1,4 @@
+import {camelCase, kebabCase} from 'change-case';
 import {autorun} from 'mobx';
 
 import {
@@ -24,8 +25,8 @@ export class BrowserRouterPlugin extends RouterPlugin {
       routraToBrowser: (segments: string[]) => string[];
       browserToRoutra: (segments: string[]) => string[];
     } = {
-      routraToBrowser: segments => segments,
-      browserToRoutra: segments => segments,
+      routraToBrowser: segments => segments.map(segment => kebabCase(segment)),
+      browserToRoutra: segments => segments.map(segment => camelCase(segment)),
     },
   ) {
     super();
@@ -61,15 +62,17 @@ export class BrowserRouterPlugin extends RouterPlugin {
         case 'replace':
           console.error('Unexpected history change reason:', reason);
           break;
-        default:
-          try {
-            router.$step(reason).$go();
-          } catch (error) {
-            console.error(error);
+        default: {
+          const step = router.$step(reason);
 
+          if (step) {
+            step.$go();
+          } else {
             location.reload();
           }
+
           break;
+        }
       }
     });
   }

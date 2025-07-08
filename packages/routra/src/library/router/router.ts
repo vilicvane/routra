@@ -32,14 +32,13 @@ import type {RouterPlugin} from './router-plugin.js';
 export type Router__ = RouterClass<any>;
 
 export type RouterOptions<TSwitchingState extends object> = {
-  plugins?: RouterPlugin[];
   defaultSwitchingState?: TSwitchingState;
 };
 
 export class RouterClass<TSwitchingState extends object> {
   private readonly _defaultSwitchingState: TSwitchingState | undefined;
 
-  private readonly _plugins: RouterPlugin[];
+  private readonly _plugins: RouterPlugin[] = [];
 
   /** @internal */
   @observable.ref
@@ -69,7 +68,7 @@ export class RouterClass<TSwitchingState extends object> {
   constructor(
     /** @internal */
     private _schemas: SchemaRecord,
-    {defaultSwitchingState, plugins = []}: RouterOptions<TSwitchingState>,
+    {defaultSwitchingState}: RouterOptions<TSwitchingState>,
   ) {
     for (let [key, childSchema] of Object.entries(_schemas)) {
       if (key.startsWith('$')) {
@@ -89,12 +88,12 @@ export class RouterClass<TSwitchingState extends object> {
     }
 
     this._defaultSwitchingState = defaultSwitchingState;
+  }
 
-    for (const plugin of plugins) {
-      plugin.setup(this);
-    }
+  $use(plugin: RouterPlugin): void {
+    this._plugins.push(plugin);
 
-    this._plugins = plugins;
+    plugin.setup(this);
   }
 
   get $path(): string[] | undefined {
@@ -192,36 +191,20 @@ export class RouterClass<TSwitchingState extends object> {
     }
   }
 
-  $step(step: number): RouterBackForward<TSwitchingState> {
-    const {entry} = this._requireActive();
-
+  $step(step: number): RouterBackForward<TSwitchingState> | undefined {
     if (step === 0) {
       throw new Error('Step cannot be 0');
     }
 
-    const [siblingKey, targetPosition] =
-      step > 0 ? (['next', 'left'] as const) : (['previous', 'right'] as const);
+    const targetStep = Math.abs(step);
 
-    let sibling = entry[siblingKey];
-
-    let limit = Math.abs(step) - 1;
-
-    while (sibling && limit > 0) {
-      sibling = sibling[siblingKey];
-      limit--;
-    }
-
-    if (!sibling) {
-      throw new Error(`No sibling entry at step ${step}`);
-    }
-
-    return createRouterBackForward(this, step, {
-      ...sibling,
-      next: entry.getTarget(targetPosition),
-    });
+    return this._stepWhile(
+      step > 0 ? 'forward' : 'back',
+      (_sibling, step) => step < targetStep,
+    );
   }
 
-  get $back(): RouterBackForward<TSwitchingState> {
+  get $back(): RouterBackForward<TSwitchingState> | undefined {
     return this.$step(-1);
   }
 
@@ -234,40 +217,13 @@ export class RouterClass<TSwitchingState extends object> {
   ): RouterBackForward<TSwitchingState> | undefined {
     const routes = Array.isArray(route) ? route : [route];
 
-    let {
-      entry,
-      entry: {previous},
-    } = this._requireActive();
-
-    let cursor = entry.getTarget('right');
-
-    let step = 1;
-
-    outer: while (previous) {
-      previous = {
-        ...previous,
-        next: cursor,
-      };
-
-      cursor = previous;
-
-      for (const route of routes) {
-        if (route._isMatched(previous.path)) {
-          break outer;
-        }
-      }
-
-      previous = previous.previous;
-
-      step++;
-    }
-
-    return previous
-      ? createRouterBackForward(this, -step, previous)
-      : undefined;
+    return this._stepWhile(
+      'back',
+      sibling => !routes.some(route => route._isMatched(sibling.path)),
+    );
   }
 
-  get $forward(): RouterBackForward<TSwitchingState> {
+  get $forward(): RouterBackForward<TSwitchingState> | undefined {
     return this.$step(1);
   }
 
@@ -280,35 +236,49 @@ export class RouterClass<TSwitchingState extends object> {
   ): RouterBackForward<TSwitchingState> | undefined {
     const routes = Array.isArray(route) ? route : [route];
 
-    let {
-      entry,
-      entry: {next},
-    } = this._requireActive();
+    return this._stepWhile(
+      'forward',
+      sibling => !routes.some(route => route._isMatched(sibling.path)),
+    );
+  }
 
-    let cursor = entry.getTarget('left');
+  private _stepWhile(
+    direction: 'back' | 'forward',
+    predicate: (sibling: RouteTarget, step: number) => boolean,
+  ): RouterBackForward<TSwitchingState> | undefined {
+    const {entry} = this._requireActive();
+
+    const [siblingKey, oppositeSiblingKey, targetPosition, operationSign] =
+      direction === 'forward'
+        ? (['next', 'previous', 'left', 1] as const)
+        : (['previous', 'next', 'right', -1] as const);
+
+    let sibling = entry[siblingKey];
+
+    let cursor = entry.getTarget(targetPosition);
 
     let step = 1;
 
-    outer: while (next) {
-      next = {
-        ...next,
-        previous: cursor,
+    while (sibling) {
+      sibling = {
+        ...sibling,
+        [oppositeSiblingKey]: cursor,
       };
 
-      cursor = next;
+      cursor = sibling;
 
-      for (const route of routes) {
-        if (route._isMatched(next.path)) {
-          break outer;
-        }
+      if (!predicate(sibling, step)) {
+        break;
       }
 
-      next = next.next;
+      sibling = sibling[siblingKey];
 
       step++;
     }
 
-    return next ? createRouterBackForward(this, step, next) : undefined;
+    return (
+      sibling && createRouterBackForward(this, operationSign * step, sibling)
+    );
   }
 
   $restore({operation, entry, objects}: Snapshot): void {
@@ -411,25 +381,11 @@ export class RouterClass<TSwitchingState extends object> {
     }
   }
 
-  $getRouteRef(route: RouteClass__): string | undefined {
-    const segments = route._snapshot_segments();
-
-    for (const plugin of this._plugins) {
-      const ref = plugin.getRouteRef(segments);
-
-      if (ref !== undefined) {
-        return ref;
-      }
-    }
-
-    return undefined;
-  }
-
   /** @internal */
-  _snapshot_segments(
+  _getRouteRef(
     path: string[],
     stateMapUpdate: Map<number, object>,
-  ): RouteSnapshotSegment[] {
+  ): string | undefined {
     const stateMap = this._buildStateMap(
       path,
       stateMapUpdate,
@@ -460,7 +416,15 @@ export class RouterClass<TSwitchingState extends object> {
       upperSchemas = schema;
     }
 
-    return segments;
+    for (const plugin of this._plugins) {
+      const ref = plugin.getRouteRef(segments);
+
+      if (ref !== undefined) {
+        return ref;
+      }
+    }
+
+    return undefined;
   }
 
   /** @internal */

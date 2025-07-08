@@ -229,9 +229,14 @@ export class RouteClass<
     return this.$router._replace(this.$path, this._stateMapUpdate);
   }
 
-  /** @internal */
-  _snapshot_segments(): RouteSnapshotSegment[] {
-    return this.$router._snapshot_segments(this.$path, this._stateMapUpdate);
+  get $ref(): string {
+    const ref = this.$router._getRouteRef(this.$path, this._stateMapUpdate);
+
+    if (ref === undefined) {
+      throw new Error('Route ref is not available, missing router plugin?');
+    }
+
+    return ref;
   }
 }
 

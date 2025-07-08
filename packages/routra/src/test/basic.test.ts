@@ -482,11 +482,11 @@ test('$snapshot', async () => {
     {},
     {},
   ],
-  "operation": "back",
+  "operation": -1,
 }
 `);
 
-  await router_2.$forward.$go().$completed;
+  await router_2.$forward!.$go().$completed;
 
   expect(router_2.home.$active).toBe(false);
   expect(router_2.home.hello.$active).toBe(false);
@@ -529,12 +529,12 @@ test('$snapshot', async () => {
     {},
     {},
   ],
-  "operation": "forward",
+  "operation": 1,
 }
 `);
 
-  await router_2.$back.$go().$completed;
-  await router_2.$back.$go().$completed;
+  await router_2.$back!.$go().$completed;
+  await router_2.$back!.$go().$completed;
 
   await router_2.$forwardTo(router_2.about)!.$go().$completed;
 
@@ -575,7 +575,7 @@ test('$snapshot', async () => {
     {},
     {},
   ],
-  "operation": "forward",
+  "operation": 2,
 }
 `);
 });

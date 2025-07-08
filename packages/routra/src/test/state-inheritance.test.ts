@@ -149,7 +149,7 @@ test('switch back', async () => {
 
   expect(router.home.$view().$entries[0].user).toBe('li4');
 
-  const switching = router.$back.$switch();
+  const switching = router.$back!.$switch();
 
   expect(router.home.$view().$entries[0].user).toBe('li4');
 

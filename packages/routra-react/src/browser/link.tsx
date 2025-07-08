@@ -17,7 +17,7 @@ export const Link = observer(
       <a
         className={classNames(className, route.$active && 'active')}
         {...props}
-        href="#"
+        href={route.$ref}
         onClick={event => {
           route.$push();
           event.preventDefault();
