@@ -52,7 +52,7 @@ test('simple case 1', async () => {
 
   expect(router.home.$view().$entries).toMatchObject([
     {
-      $key: 2,
+      $key: 1,
       $entering: undefined,
       $leaving: undefined,
       $match: expect.objectContaining({
@@ -68,7 +68,7 @@ test('simple case 1', async () => {
 
   expect(router.home.hello.$view().$entries).toMatchObject([
     {
-      $key: 3,
+      $key: 2,
       $entering: undefined,
       $leaving: undefined,
       $match: expect.objectContaining({
@@ -262,7 +262,7 @@ test('switching', async () => {
     },
   ]);
 
-  expect(router.inbox.message.$view().$entries).toMatchObject([
+  expect(router.inbox.message.$view({parallel: true}).$entries).toMatchObject([
     {
       $switching: {
         $operation: 'push',
@@ -284,7 +284,7 @@ test('switching', async () => {
     },
   ]);
 
-  expect(router.inbox.message.$view().$entries).toMatchObject([
+  expect(router.inbox.message.$view({parallel: true}).$entries).toMatchObject([
     {
       $entering: undefined,
       $leaving: undefined,
@@ -296,7 +296,7 @@ test('switching', async () => {
     .message({id: 'abc'})
     .$replace.$switch({}, {progress: 0});
 
-  expect(router.inbox.message.$view().$entries).toMatchObject([
+  expect(router.inbox.message.$view({parallel: true}).$entries).toMatchObject([
     {
       $switching: {
         $operation: 'replace',
@@ -315,7 +315,7 @@ test('switching', async () => {
 
   switching_2.$complete();
 
-  expect(router.inbox.message.$view().$entries).toMatchObject([
+  expect(router.inbox.message.$view({parallel: true}).$entries).toMatchObject([
     {
       $entering: undefined,
       $leaving: undefined,
