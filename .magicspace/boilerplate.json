@@ -22,6 +22,11 @@
             "name": "library"
           },
           {
+            "name": "browser",
+            "type": "library",
+            "references": ["library"]
+          },
+          {
             "name": "test",
             "references": ["library"]
           }
@@ -38,14 +43,10 @@
                 "project": "library"
               }
             ]
-          }
-        ]
-      },
-      {
-        "name": "routra-browser",
-        "projects": [
+          },
           {
-            "name": "library",
+            "name": "browser",
+            "type": "library",
             "references": [
               {
                 "package": "routra",

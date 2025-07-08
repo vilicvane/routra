@@ -1,12 +1,14 @@
 import {autorun} from 'mobx';
-import type {
-  RouteClass__,
-  RouteSnapshotSegment,
-  Router__,
-  Snapshot,
-  SnapshotEntry,
-  SnapshotState,
-} from 'routra';
+
+import {
+  type RouteClass__,
+  type RouteSnapshotSegment,
+  RouterPlugin,
+  type Router__,
+  type Snapshot,
+  type SnapshotEntry,
+  type SnapshotState,
+} from '../library/index.js';
 
 import type {
   BrowserHistoryEntry,
@@ -14,7 +16,7 @@ import type {
 } from './browser-history.js';
 import {BrowserHistory} from './browser-history.js';
 
-export class RouterPlugin {
+export class BrowserRouterPlugin extends RouterPlugin {
   constructor(
     private defaultRoute: RouteClass__,
     private history = new BrowserHistory<void>(),
@@ -25,7 +27,9 @@ export class RouterPlugin {
       routraToBrowser: segments => segments,
       browserToRoutra: segments => segments,
     },
-  ) {}
+  ) {
+    super();
+  }
 
   setup(router: Router__): void {
     autorun(() => {

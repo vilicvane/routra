@@ -7,10 +7,19 @@
   "author": "vilicvane",
   "type": "module",
   "exports": {
-    "types": "./bld/library/index.d.ts",
-    "default": "./bld/library/index.js"
+    ".": {
+      "types": "./bld/library/index.d.ts",
+      "default": "./bld/library/index.js"
+    },
+    "./browser": {
+      "types": "./bld/browser/index.d.ts",
+      "default": "./bld/browser/index.js"
+    }
   },
   "dependencies": {
+    "@types/debug": "^4.1.12",
+    "change-case": "^5.4.4",
+    "debug": "^4.4.1",
     "multikey-map": "^0.4.0",
     "tslib": "^2.8.1"
   },

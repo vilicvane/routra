@@ -4,11 +4,11 @@
     "composite": true,
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "rootDir": ".",
-    "outDir": "../../bld/library"
+    "outDir": "../../bld/browser"
   },
   "references": [
     {
-      "path": "../../../routra/src/library"
+      "path": "../library"
     }
   ]
 }

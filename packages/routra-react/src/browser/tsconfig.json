@@ -2,10 +2,10 @@
   "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "jsx": "react",
     "rootDir": ".",
-    "outDir": "../../bld/library"
+    "outDir": "../../bld/browser"
   },
   "references": [
     {

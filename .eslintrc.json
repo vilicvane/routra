@@ -5,9 +5,7 @@
     "/packages/routra/src/",
     "/packages/routra/bld/",
     "/packages/routra-react/src/",
-    "/packages/routra-react/bld/",
-    "/packages/routra-browser/src/",
-    "/packages/routra-browser/bld/"
+    "/packages/routra-react/bld/"
   ],
   "extends": ["plugin:@mufan/javascript"],
   "overrides": [

@@ -28,10 +28,7 @@ export const RouteView = <TRoute extends RouteNodeClass__>({
 }: RouteViewProps<TRoute>): ReactElement => {
   const onAnimationOrTransitionEnd = useEvent(
     ({target, currentTarget}: AnimationEvent | TransitionEvent) => {
-      if (
-        target !== currentTarget &&
-        !(target as HTMLElement).classList.contains('routra-transition')
-      ) {
+      if (target !== currentTarget) {
         return;
       }
 

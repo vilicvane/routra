@@ -4,13 +4,16 @@
       "path": "packages/routra/src/library"
     },
     {
+      "path": "packages/routra/src/browser"
+    },
+    {
       "path": "packages/routra/src/test"
     },
     {
       "path": "packages/routra-react/src/library"
     },
     {
-      "path": "packages/routra-browser/src/library"
+      "path": "packages/routra-react/src/browser"
     }
   ],
   "files": []
