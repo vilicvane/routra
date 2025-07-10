@@ -503,7 +503,7 @@ test('$snapshot', async () => {
 }
 `);
 
-  await router_2.$forward!.$go().$completed;
+  await router_2.$forward.$go().$completed;
 
   expect(router_2.home.$active).toBe(false);
   expect(router_2.home.hello.$active).toBe(false);
@@ -550,8 +550,8 @@ test('$snapshot', async () => {
 }
 `);
 
-  await router_2.$back!.$go().$completed;
-  await router_2.$back!.$go().$completed;
+  await router_2.$back.$go().$completed;
+  await router_2.$back.$go().$completed;
 
   await router_2.$forwardTo(router_2.about)!.$go().$completed;
 

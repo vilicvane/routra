@@ -191,20 +191,26 @@ export class RouterClass<TSwitchingState extends object> {
     }
   }
 
-  $step(step: number): RouterBackForward<TSwitchingState> | undefined {
+  $step(step: number): RouterBackForward<TSwitchingState> {
     if (step === 0) {
       throw new Error('Step cannot be 0');
     }
 
     const targetStep = Math.abs(step);
 
-    return this._stepWhile(
+    const backForward = this._stepWhile(
       step > 0 ? 'forward' : 'back',
       (_sibling, step) => step < targetStep,
     );
+
+    if (!backForward) {
+      throw new Error(`Cannot step ${step}`);
+    }
+
+    return backForward;
   }
 
-  get $back(): RouterBackForward<TSwitchingState> | undefined {
+  get $back(): RouterBackForward<TSwitchingState> {
     return this.$step(-1);
   }
 
@@ -223,7 +229,7 @@ export class RouterClass<TSwitchingState extends object> {
     );
   }
 
-  get $forward(): RouterBackForward<TSwitchingState> | undefined {
+  get $forward(): RouterBackForward<TSwitchingState> {
     return this.$step(1);
   }
 
@@ -386,6 +392,41 @@ export class RouterClass<TSwitchingState extends object> {
     path: string[],
     stateMapUpdate: Map<number, object>,
   ): string | undefined {
+    const segments = this.snapshotRouteSegments(path, stateMapUpdate);
+
+    for (const plugin of this._plugins) {
+      const ref = plugin.getRouteRef(segments);
+
+      if (ref !== undefined) {
+        return ref;
+      }
+    }
+
+    return undefined;
+  }
+
+  /** @internal */
+  _getRouteHRef(
+    path: string[],
+    stateMapUpdate: Map<number, object>,
+  ): string | undefined {
+    const segments = this.snapshotRouteSegments(path, stateMapUpdate);
+
+    for (const plugin of this._plugins) {
+      const href = plugin.getRouteHRef(segments);
+
+      if (href !== undefined) {
+        return href;
+      }
+    }
+
+    return undefined;
+  }
+
+  private snapshotRouteSegments(
+    path: string[],
+    stateMapUpdate: Map<number, object>,
+  ): RouteSnapshotSegment[] {
     const stateMap = this._buildStateMap(
       path,
       stateMapUpdate,
@@ -416,15 +457,7 @@ export class RouterClass<TSwitchingState extends object> {
       upperSchemas = schema;
     }
 
-    for (const plugin of this._plugins) {
-      const ref = plugin.getRouteRef(segments);
-
-      if (ref !== undefined) {
-        return ref;
-      }
-    }
-
-    return undefined;
+    return segments;
   }
 
   /** @internal */

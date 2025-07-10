@@ -260,6 +260,16 @@ export class RouteClass<
 
     return ref;
   }
+
+  get $href(): string {
+    const href = this.$router._getRouteHRef(this.$path, this._stateMapUpdate);
+
+    if (href === undefined) {
+      throw new Error('Route href is not available, missing router plugin?');
+    }
+
+    return href;
+  }
 }
 
 export type RouteSnapshotSegment = {

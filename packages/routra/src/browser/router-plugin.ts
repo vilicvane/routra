@@ -85,6 +85,12 @@ export class BrowserRouterPlugin extends RouterPlugin {
     );
   }
 
+  getRouteHRef(segments: RouteSnapshotSegment[]): string | undefined {
+    const ref = this.getRouteRef(segments);
+
+    return ref ? this.history.getHRefByRef(ref) : undefined;
+  }
+
   private segmentsRoutraToBrowser(segments: string[]): string[] {
     if (isSegmentsEqual(segments, this.defaultRoute.$path)) {
       segments = [];

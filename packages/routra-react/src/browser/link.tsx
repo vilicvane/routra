@@ -23,7 +23,7 @@ export const Link = observer(
       <a
         className={classNames(className, route.$active && 'active')}
         {...props}
-        href={route.$ref}
+        href={route.$href}
         onClick={event => {
           if (replace) {
             route.$replace();
