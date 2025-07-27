@@ -17,19 +17,66 @@ import type {
 } from './browser-history.js';
 import {BrowserHistory} from './browser-history.js';
 
+export type BrowserRouterPluginOptions = {
+  default: RouteClass__;
+  history?: BrowserHistory<void>;
+  segments?: (
+    | {
+        routraToBrowser: (segments: string[]) => string[];
+        browserToRoutra: (segments: string[]) => string[];
+      }
+    | {}
+  ) &
+    (
+      | {
+          encodeState: (state: unknown) => string;
+          decodeState: (state: string) => unknown;
+        }
+      | {}
+    ) & {
+      disableFormDataEncoding?: boolean;
+    };
+};
+
+type BrowserRouterPluginSegments = {
+  routraToBrowser: (segments: string[]) => string[];
+  browserToRoutra: (segments: string[]) => string[];
+  encodeState: (state: unknown) => string;
+  decodeState: (state: string) => unknown;
+  disableFormDataEncoding: boolean;
+};
+
 export class BrowserRouterPlugin extends RouterPlugin {
-  constructor(
-    private defaultRoute: RouteClass__,
-    private history = new BrowserHistory<void>(),
-    private segmentsConverters: {
-      routraToBrowser: (segments: string[]) => string[];
-      browserToRoutra: (segments: string[]) => string[];
-    } = {
-      routraToBrowser: segments => segments.map(segment => kebabCase(segment)),
-      browserToRoutra: segments => segments.map(segment => camelCase(segment)),
-    },
-  ) {
+  private defaultRoute: RouteClass__;
+
+  private history: BrowserHistory<void>;
+
+  private segments: BrowserRouterPluginSegments;
+
+  constructor({
+    default: defaultRoute,
+    history = new BrowserHistory<void>(),
+    segments = {},
+  }: BrowserRouterPluginOptions) {
     super();
+
+    const {
+      routraToBrowser = segments => segments.map(segment => kebabCase(segment)),
+      browserToRoutra = segments => segments.map(segment => camelCase(segment)),
+      encodeState = JSON.stringify,
+      decodeState = JSON.parse,
+      disableFormDataEncoding = false,
+    } = segments as Partial<BrowserRouterPluginSegments>;
+
+    this.defaultRoute = defaultRoute;
+    this.history = history;
+    this.segments = {
+      routraToBrowser,
+      browserToRoutra,
+      encodeState,
+      decodeState,
+      disableFormDataEncoding,
+    };
   }
 
   setup(router: Router__): void {
@@ -80,7 +127,9 @@ export class BrowserRouterPlugin extends RouterPlugin {
   getRouteRef(segments: RouteSnapshotSegment[]): string | undefined {
     return (
       segments
-        .map(({name, state}) => `/${name}:${encodeDataUriComponent(state)}`)
+        .map(
+          ({name, state}) => `/${name}:${this.encodeDataURIComponent(state)}`,
+        )
         .join('') || '/'
     );
   }
@@ -96,7 +145,7 @@ export class BrowserRouterPlugin extends RouterPlugin {
       segments = [];
     }
 
-    return this.segmentsConverters.routraToBrowser(segments);
+    return this.segments.routraToBrowser(segments);
   }
 
   private segmentsBrowserToRoutra(segments: string[]): string[] {
@@ -104,7 +153,7 @@ export class BrowserRouterPlugin extends RouterPlugin {
       segments = this.defaultRoute.$path;
     }
 
-    return this.segmentsConverters.browserToRoutra(segments);
+    return this.segments.browserToRoutra(segments);
   }
 
   private convertBrowserHistorySnapshotToRoutraSnapshot({
@@ -125,7 +174,7 @@ export class BrowserRouterPlugin extends RouterPlugin {
 
       states.push({
         value: encodedData
-          ? gracefulDecodeDataUriComponent(encodedData)
+          ? this.gracefulDecodeDataURIComponent(encodedData)
           : undefined,
       });
     }
@@ -144,7 +193,27 @@ export class BrowserRouterPlugin extends RouterPlugin {
     entry,
     objects,
   }: Snapshot): BrowserHistorySnapshot<void> {
-    const that = this;
+    const getRef = (entry: SnapshotEntry): string => {
+      return (
+        this.segmentsRoutraToBrowser(entry.path)
+          .map((segment, index) => {
+            const state = entry.states[index];
+
+            let segmentData: string;
+
+            if (typeof state === 'number') {
+              const encodedData = this.encodeDataURIComponent(objects[state]);
+
+              segmentData = encodedData === '' ? '' : `:${encodedData}`;
+            } else {
+              segmentData = `:${this.encodeDataURIComponent(state.value)}`;
+            }
+
+            return `/${segment}${segmentData}`;
+          })
+          .join('') || '/'
+      );
+    };
 
     let active = 0;
 
@@ -180,29 +249,40 @@ export class BrowserRouterPlugin extends RouterPlugin {
     }
 
     return {entries, active};
+  }
 
-    function getRef(entry: SnapshotEntry): string {
-      return (
-        that
-          .segmentsRoutraToBrowser(entry.path)
-          .map((segment, index) => {
-            const state = entry.states[index];
-
-            let segmentData: string;
-
-            if (typeof state === 'number') {
-              const encodedData = encodeDataUriComponent(objects[state]);
-
-              segmentData = encodedData === '' ? '' : `:${encodedData}`;
-            } else {
-              segmentData = `:${encodeDataUriComponent(state.value)}`;
-            }
-
-            return `/${segment}${segmentData}`;
-          })
-          .join('') || '/'
-      );
+  private gracefulDecodeDataURIComponent(encodedData: string): unknown {
+    if (encodedData.includes('=')) {
+      try {
+        return Object.fromEntries(new URLSearchParams(encodedData));
+      } catch {
+        // ignore
+      }
     }
+
+    try {
+      return this.segments.decodeState(decodeURIComponent(encodedData));
+    } catch {
+      return undefined;
+    }
+  }
+
+  private encodeDataURIComponent(data: unknown): string {
+    if (
+      !this.segments.disableFormDataEncoding &&
+      typeof data === 'object' &&
+      data !== null
+    ) {
+      const entries = Object.entries(data).filter(
+        ([, value]) => value !== undefined,
+      );
+
+      if (entries.every(([, value]) => typeof value === 'string')) {
+        return new URLSearchParams(entries).toString();
+      }
+    }
+
+    return encodeURIComponent(this.segments.encodeState(data));
   }
 }
 
@@ -218,34 +298,4 @@ function isSegmentsEqual(x: string[], y: string[]): boolean {
   }
 
   return true;
-}
-
-function gracefulDecodeDataUriComponent(encodedData: string): unknown {
-  if (encodedData.includes('=')) {
-    try {
-      return Object.fromEntries(new URLSearchParams(encodedData));
-    } catch {
-      // ignore
-    }
-  }
-
-  try {
-    return JSON.parse(decodeURIComponent(encodedData));
-  } catch {
-    return undefined;
-  }
-}
-
-function encodeDataUriComponent(data: unknown): string {
-  if (typeof data === 'object' && data !== null) {
-    const entries = Object.entries(data).filter(
-      ([, value]) => value !== undefined,
-    );
-
-    if (entries.every(([, value]) => typeof value === 'string')) {
-      return new URLSearchParams(entries).toString();
-    }
-  }
-
-  return encodeURIComponent(JSON.stringify(data));
 }
